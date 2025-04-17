@@ -13,6 +13,13 @@ export default function Forecast() {
     'Oct','Nov','Dec','Jan','Feb','Mar'
   ];
 
+  // these are the widths (in px) of our first 7 “sticky” columns
+  const stickyWidths = [150,150,150,100,100,100,100];
+  // precompute the left offset for each of the 7 columns
+  const leftOffsets = stickyWidths.map((_,i) =>
+    stickyWidths.slice(0,i).reduce((a,b)=>a+b,0)
+  );
+
   // fetch FYs
   useEffect(() => {
     API.get('/entries/years', { params: { type: 'forecast' } })
@@ -40,8 +47,7 @@ export default function Forecast() {
     const blank = {
       accountName:'',deliveryManager:'',projectName:'',
       BU:'',VDE:'',GDE:'',account:'',
-      Apr:0,May:0,Jun:0,Jul:0,Aug:0,Sep:0,
-      Oct:0,Nov:0,Dec:0,Jan:0,Feb:0,Mar:0,
+      ...MONTHS.reduce((o,m)=>({...o,[m]:0}),{}),
       comments:''
     };
     setEntries(es => [...es, blank]);
@@ -50,6 +56,7 @@ export default function Forecast() {
 
   const cancel = () => {
     setEdit(false);
+    // re‑load
     API.get('/entries', { params: { type:'forecast', year } })
        .then(r => setEntries(r.data));
   };
@@ -68,13 +75,12 @@ export default function Forecast() {
     window.open(`/api/entries/export?type=forecast&year=${year}`, '_blank');
   };
 
-  // sum per row
   const rowTotal = row =>
     MONTHS.reduce((sum,m)=>sum+(row[m]||0),0).toFixed(2);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      {/* toolbar */}
+      {/* Toolbar */}
       <div className="flex flex-wrap items-center mb-4 space-x-2">
         <select
           className="border rounded px-2 py-1 bg-white"
@@ -118,10 +124,21 @@ export default function Forecast() {
         )}
       </div>
 
-      {/* scrollable table container */}
-      <div className="border rounded bg-white shadow overflow-auto"
-           style={{ maxHeight: '70vh' }}>
-        <table className="min-w-max border-collapse">
+      {/* Scrollable Table */}
+      <div className="border rounded bg-white shadow overflow-auto" style={{ maxHeight: '70vh' }}>
+        <table
+          className="border-collapse"
+          style={{ tableLayout: 'fixed', width: 'max-content' }}
+        >
+          {/* define fixed widths */}
+          <colgroup>
+            {stickyWidths.map((w,i) => <col key={i} style={{ width: w }} />)}
+            {MONTHS.map((_,i) => <col key={i} style={{ width: 100 }} />)}
+            <col style={{ width: 120 }} />
+            <col style={{ width: 200 }} />
+            <col style={{ width: 50 }} />
+          </colgroup>
+
           <thead>
             <tr>
               {[
@@ -130,26 +147,18 @@ export default function Forecast() {
                 ...MONTHS,
                 'Total','Comments',''
               ].map((h,i) => {
-                // header colors & sticky
-                let bg = '';
-                if (i < 7)         bg = 'bg-blue-100';
-                else if (i < 7+MONTHS.length) bg = 'bg-yellow-100';
-                else if (i < 7+MONTHS.length+2) bg = 'bg-blue-200';
-                else                bg = 'bg-white';
-
-                // compute z-index for sticky layering
-                let z = 10;
-                if (i < 7) z = 30 - i;    // first 7 columns
-                else if (i === 7) z = 15; // first month
+                let bg = i < 7
+                  ? 'bg-blue-100'
+                  : i < 7+MONTHS.length
+                    ? 'bg-yellow-100'
+                    : 'bg-blue-200';
 
                 return (
                   <th
                     key={h}
-                    className={`px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b ${bg} sticky top-0`}
-                    style={{ zIndex: z }}
-                  >
-                    {h}
-                  </th>
+                    className={`${bg} text-left text-sm font-semibold text-gray-700 border-b px-2 py-1 sticky top-0`}
+                    style={{ zIndex: 200 }}
+                  >{h}</th>
                 );
               })}
             </tr>
@@ -158,24 +167,24 @@ export default function Forecast() {
           <tbody>
             {entries.map((row,i) => (
               <tr key={i} className="hover:bg-gray-50">
-                {/* first 7 cols */}
+                {/* first 7 sticky cols */}
                 {[
                   'accountName','deliveryManager','projectName',
                   'BU','VDE','GDE','account'
                 ].map((f,colIdx) => (
                   <td
                     key={f}
-                    className="px-4 py-2 border-b text-sm"
+                    className="border-b px-2 py-1 text-sm bg-white"
                     style={{
                       position: 'sticky',
-                      left: `${colIdx * 10}rem`,  // adjust 10rem per col
+                      left: leftOffsets[colIdx],
                       background: 'white',
-                      zIndex: 20 - colIdx
+                      zIndex: 100
                     }}
                   >
                     {isEditing
                       ? <input
-                          className="w-full border rounded px-2 py-1 text-sm"
+                          className="w-full border rounded px-1 py-1 text-sm"
                           value={row[f]||''}
                           onChange={e=>handleChange(i,f,e.target.value)}
                         />
@@ -184,13 +193,16 @@ export default function Forecast() {
                   </td>
                 ))}
 
-                {/* month columns */}
+                {/* month cols */}
                 {MONTHS.map(m => (
-                  <td key={m} className="px-4 py-2 border-b text-right text-sm bg-yellow-50">
+                  <td
+                    key={m}
+                    className="border-b text-right px-2 py-1 text-sm bg-yellow-50"
+                  >
                     {isEditing
                       ? <input
                           type="number" step="0.01"
-                          className="w-full border rounded px-2 py-1 text-sm"
+                          className="w-full border rounded px-1 py-1 text-sm"
                           value={row[m]}
                           onChange={e=>handleChange(i,m,e.target.value)}
                         />
@@ -200,15 +212,15 @@ export default function Forecast() {
                 ))}
 
                 {/* total */}
-                <td className="px-4 py-2 border-b text-right font-semibold bg-blue-200">
+                <td className="border-b text-right px-2 py-1 font-semibold bg-blue-200">
                   ${rowTotal(row)}
                 </td>
 
                 {/* comments */}
-                <td className="px-4 py-2 border-b text-sm bg-blue-200">
+                <td className="border-b px-2 py-1 text-sm bg-blue-200">
                   {isEditing
                     ? <input
-                        className="w-full border rounded px-2 py-1 text-sm"
+                        className="w-full border rounded px-1 py-1 text-sm"
                         value={row.comments||''}
                         onChange={e=>handleChange(i,'comments',e.target.value)}
                       />
@@ -216,8 +228,8 @@ export default function Forecast() {
                   }
                 </td>
 
-                {/* delete icon for new rows */}
-                <td className="px-4 py-2 border-b text-center bg-white">
+                {/* delete icon for brand-new rows */}
+                <td className="border-b px-2 py-1 bg-white text-center">
                   {isEditing && !row._id && (
                     <button
                       className="text-red-500 hover:text-red-700"
