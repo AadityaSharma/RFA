@@ -1,7 +1,6 @@
 // frontend/src/App.jsx
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Projects from './pages/Projects';
