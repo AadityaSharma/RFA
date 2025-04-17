@@ -16,7 +16,8 @@
 
 /* Column width hints */
 .month-col {
-  min-width: 80px;
+  min-width: 60px;
+  max-width: 80px;
 }
 .total-col {
   min-width: 100px;
