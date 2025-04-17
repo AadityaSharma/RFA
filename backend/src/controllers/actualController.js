@@ -32,3 +32,17 @@ exports.import = async (req, res, next) => {
     next(e);
   }
 };
+
+exports.exportActuals = async (req, res, next) => {
+  try {
+    const all = await Actual.find().lean();
+    const ws = require('xlsx').utils.json_to_sheet(all);
+    const wb = require('xlsx').utils.book_new();
+    require('xlsx').utils.book_append_sheet(wb, ws, 'Actuals');
+    const buf = require('xlsx').write(wb, { type:'buffer', bookType:'xlsx' });
+    res.setHeader('Content-Disposition','attachment; filename=actuals.xlsx');
+    res.send(buf);
+  } catch (err) {
+    next(err);
+  }
+};
