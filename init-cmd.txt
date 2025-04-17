@@ -1,0 +1,8 @@
+mkdir revenue-forecasting-app
+cd revenue-forecasting-app
+
+# backend
+mkdir backend && cd backend
+npm init -y
+npm install express mongoose dotenv bcrypt jsonwebtoken cors multer csvtojson xlsx morgan
+npm install -D nodemon
