@@ -33,7 +33,7 @@ module.exports = router;
 const express = require('express');
 const multer  = require('multer');
 const { protect, restrictTo } = require('../middleware/auth');
-const { importActuals } = require('../controllers/actualsController');
+const { importActuals } = require('../controllers/actualController');
 const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
