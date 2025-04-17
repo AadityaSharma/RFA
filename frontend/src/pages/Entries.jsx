@@ -1,4 +1,5 @@
 // frontend/src/pages/Entries.jsx
+import React from 'react';
 import { useEffect,useState } from 'react';
 import { fetchEntries, saveEntry, fetchProjects } from '../services/api';
 
