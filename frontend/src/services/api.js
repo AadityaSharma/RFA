@@ -27,3 +27,5 @@ export const fetchDashboard = q => API.get('/dashboard/summary',{params:q});
 
 export const exportEntries = type =>
   API.get(`/entries/export?type=${type}`, { responseType: 'blob' });
+
+export const fetchYears = () => API.get('/entries/years');
