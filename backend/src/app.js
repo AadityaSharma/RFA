@@ -22,4 +22,6 @@ app.use((err, req, res, next) => {
   res.status(err.status||500).json({ message: err.message });
 });
 
+app.use('/api/auth', require('./routes/auth'));
+
 module.exports = app;
