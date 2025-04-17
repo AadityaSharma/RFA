@@ -1,6 +1,17 @@
 const Entry = require('../models/Entry');
 const AuditLog = require('../models/AuditLog');
 
+exports.getYears = async (req, res, next) => {
+  try {
+    // only return years that have at least one forecast entry
+    const years = await Entry.distinct('year', { type: 'forecast' });
+    years.sort((a,b)=>b-a);           // descending
+    res.json(years);                  // e.g. [2025,2024,2023]
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.list = async (req, res, next) => {
   const q = { ...req.query };
   if (req.user.role === 'manager') q.managerId = req.user._id;
