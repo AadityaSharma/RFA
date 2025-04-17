@@ -10,7 +10,12 @@ const adminRoutes = require('./routes/admin');
 const { errorHandler } = require('./middleware/error');
 
 const app = express();
-app.use(cors());
+
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
+
 app.use(morgan('dev'));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
