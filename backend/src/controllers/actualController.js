@@ -1,29 +1,34 @@
 const Actual = require('../models/Actual');
+const Project = require('../models/Project');
 const { parseFile } = require('../utils/csvParser');
 
 exports.import = async (req, res, next) => {
-  const rows = await parseFile(req.file.path);
-  const docs = rows.map(r => ({
-    projectId: r.projectId, year: +r.year, month: +r.month,
-    valueMillion: +r.valueMillion, uploadedBy: req.user._id
-  }));
-  await Actual.deleteMany({}); // remove old for this FY if you wish
-  await Actual.insertMany(docs);
-  res.json({ imported: docs.length });
-};
+  try {
+    const rows = await parseFile(req.file.path);
+    // Map project names to IDs
+    const projects = await Project.find().lean();
+    const nameToId = {};
+    projects.forEach(p => { nameToId[p.name] = p._id; });
 
-exports.list = async (req, res, next) => {
-  const q = { ...(req.query) };
-  const a = await Actual.find(q);
-  res.json(a);
-};
+    const docs = rows.map(r => {
+      if (!nameToId[r.projectName]) {
+        throw { status: 400, message: `Unknown project: ${r.projectName}` };
+      }
+      return {
+        projectId: nameToId[r.projectName],
+        year: +r.year,
+        month: +r.month,
+        valueMillion: +r.valueMillion,
+        uploadedBy: req.user._id
+      };
+    });
 
-exports.export = async (req, res, next) => {
-  const all = await Actual.find().lean();
-  const ws = require('xlsx').utils.json_to_sheet(all);
-  const wb = require('xlsx').utils.book_new();
-  require('xlsx').utils.book_append_sheet(wb, ws, 'Actuals');
-  const buf = require('xlsx').write(wb, { type:'buffer', bookType:'xlsx' });
-  res.setHeader('Content-Disposition','attachment; filename=actuals.xlsx');
-  res.send(buf);
+    // Overwrite existing actuals
+    await Actual.deleteMany({});
+    await Actual.insertMany(docs);
+
+    res.json({ imported: docs.length });
+  } catch (e) {
+    next(e);
+  }
 };
