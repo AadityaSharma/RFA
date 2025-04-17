@@ -1,0 +1,16 @@
+/* frontend/src/pages/Forecast.css */
+
+/* freeze header row */
+.forecast-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* freeze first column */
+.forecast-table td:first-child,
+.forecast-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+}
