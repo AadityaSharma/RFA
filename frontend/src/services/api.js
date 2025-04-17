@@ -1,37 +1,31 @@
-// frontend/src/services/api.js
 import axios from 'axios';
 const API = axios.create({ baseURL: 'http://localhost:5000/api' });
-
 API.interceptors.request.use(req => {
-  const token = localStorage.getItem('token');
-  if (token) req.headers.Authorization = `Bearer ${token}`;
+  const t = localStorage.getItem('token');
+  if (t) req.headers.Authorization = `Bearer ${t}`;
   return req;
 });
-
-export const login = creds => API.post('/auth/login', creds);
+export const signup = data => API.post('/auth/signup', data);
+export const login = data => API.post('/auth/login', data);
 export const fetchProjects = () => API.get('/projects');
-export const assignProject = (id,mgrs) => API.put(`/projects/${id}/assign`,{managerIds:mgrs});
+export const createProject = d => API.post('/projects', d);
+export const assignManagers = (id, m) => API.put(`/projects/${id}/assign`, { managerIds: m });
+export const setAOP = (id, d) => API.put(`/projects/${id}/aop`, d);
 export const fetchEntries = q => API.get('/entries',{params:q});
-export const saveEntry = formData => API.post('/entries', formData);
-export const fetchVersions = id => API.get(`/entries/${id}/versions`);
+export const upsertEntry = fd => API.post('/entries', fd);
+export const fetchActuals = q => API.get('/actuals',{params:q});
 export const importActuals = file => {
-  const fd=new FormData(); fd.append('file',file);
+  const fd = new FormData(); fd.append('file',file);
   return API.post('/actuals/import', fd);
+};
+export const exportActuals = () => API.get('/actuals/export',{responseType:'blob'});
+export const newFY = file => {
+  const fd = new FormData(); fd.append('file',file);
+  return API.post('/admin/newfy', fd);
 };
 export const fetchDashboard = q => API.get('/dashboard/summary',{params:q});
 
-export const createProject = data => API.post('/projects', data);
-export const setAOPTarget = ({ projectId, year, month, valueMillion }) =>
-  API.put(`/projects/${projectId}/aop`, { year, month, valueMillion });
-
-// Export CSV/XLSX endpoints
-export const exportActuals = () =>
-  API.get('/actuals/export', { responseType: 'blob' });
-
 export const exportEntries = type =>
-  API.get('/entries/export', {
-    params: { type },
-    responseType: 'blob'
-  });
+  API.get(`/entries/export?type=${type}`, { responseType: 'blob' });
 
-export const signup = data => API.post('/auth/signup', data);
+export const fetchYears = () => API.get('/entries/years');

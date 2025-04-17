@@ -1,18 +1,20 @@
-// src/middleware/auth.js
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 exports.protect = async (req, res, next) => {
   try {
-    const header = req.headers.authorization;
-    if (!header || !header.startsWith('Bearer '))
+    const hdr = req.headers.authorization;
+    if (!hdr || !hdr.startsWith('Bearer '))
       throw { status: 401, message: 'Not logged in' };
-    const token = header.split(' ')[1];
+    const token = hdr.split(' ')[1];
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(payload.id);
-    if (!req.user) throw { status: 401, message: 'User no longer exists' };
+    const user = await User.findById(payload.id);
+    if (!user) throw { status: 401, message: 'User not found' };
+    req.user = user;
     next();
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 exports.restrictTo = (...roles) => (req, res, next) => {

@@ -1,27 +1,26 @@
-// frontend/src/App.jsx
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Projects from './pages/Projects';
-import Entries from './pages/Entries';
-import Dashboard from './pages/Dashboard';
-import Admin from './pages/Admin';
-import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Forecast from './pages/Forecast';
+import Opportunities from './pages/Opportunities';
+import Admin from './pages/Admin';
+import NewFY from './pages/NewFY';
 
- export default function App() {
-   return (
+export default function App(){
+  return (
     <>
       <Navbar/>
-       <Routes>
-        <Route path="/signup" element={<Signup/>}/>
-         <Route path="/login" element={<Login/>}/>
-         <Route path="/" element={<ProtectedRoute><Dashboard/></ProtectedRoute>}/>
-         <Route path="/projects" element={<ProtectedRoute><Projects/></ProtectedRoute>}/>
-         <Route path="/entries" element={<ProtectedRoute><Entries/></ProtectedRoute>}/>
+      <Routes>
+        <Route path="/login" element={<Login/>}/>
+        <Route path="/" element={<ProtectedRoute><Dashboard/></ProtectedRoute>}/>
+        <Route path="/forecast" element={<ProtectedRoute><Forecast/></ProtectedRoute>}/>
+        <Route path="/opportunities" element={<ProtectedRoute><Opportunities/></ProtectedRoute>}/>
         <Route path="/admin" element={<ProtectedRoute><Admin/></ProtectedRoute>}/>
-       </Routes>
+        <Route path="/newfy" element={<ProtectedRoute><NewFY/></ProtectedRoute>}/>
+      </Routes>
     </>
-   );
- }
+  );
+}

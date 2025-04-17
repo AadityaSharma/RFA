@@ -4,24 +4,22 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
-// ... add other routers
+const entryRoutes = require('./routes/entries');
+const actualRoutes = require('./routes/actuals');
+const adminRoutes = require('./routes/admin');
+const { errorHandler } = require('./middleware/error');
 
 const app = express();
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
-// routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
-// ...
+app.use('/api/entries', entryRoutes);
+app.use('/api/actuals', actualRoutes);
+app.use('/api/admin', adminRoutes);
 
-// global error handler
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(err.status||500).json({ message: err.message });
-});
-
-app.use('/api/auth', require('./routes/auth'));
-
+app.use(errorHandler);
 module.exports = app;

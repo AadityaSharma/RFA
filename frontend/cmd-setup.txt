@@ -1,9 +1,0 @@
-# create React app
-cd revenue-forecasting-app
-npm create vite@latest frontend --template react
-cd frontend
-
-# deps
-npm install axios react-router-dom recharts
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p

@@ -1,14 +1,9 @@
-// src/controllers/authController.js
-const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const signToken = (user) =>
-  jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '7d' }
-  );
+const signToken = (u) =>
+  jwt.sign({ id: u._id, role: u.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
 exports.signup = async (req, res, next) => {
   try {
@@ -17,9 +12,8 @@ exports.signup = async (req, res, next) => {
     if (await User.findOne({ email })) throw { status: 400, message: 'Email in use' };
     const passwordHash = await bcrypt.hash(password, 12);
     const user = await User.create({ name, email, passwordHash, role });
-    const token = signToken(user);
-    res.status(201).json({ user: { id: user._id, name, email, role }, token });
-  } catch (err) { next(err); }
+    res.status(201).json({ token: signToken(user), user: { id: user._id, name, email, role } });
+  } catch (e) { next(e); }
 };
 
 exports.login = async (req, res, next) => {
@@ -27,9 +21,8 @@ exports.login = async (req, res, next) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) throw { status: 401, message: 'Invalid credentials' };
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) throw { status: 401, message: 'Invalid credentials' };
-    const token = signToken(user);
-    res.json({ user: { id: user._id, name: user.name, email, role: user.role }, token });
-  } catch (err) { next(err); }
+    if (!await bcrypt.compare(password, user.passwordHash))
+      throw { status: 401, message: 'Invalid credentials' };
+    res.json({ token: signToken(user), user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+  } catch (e) { next(e); }
 };

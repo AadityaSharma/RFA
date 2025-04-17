@@ -1,9 +1,4 @@
-/* frontend/src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* optional full-height root */
-html, body, #root {
-  height: 100%;
-}
+html, body, #root { height: 100%; }
