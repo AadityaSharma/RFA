@@ -9,7 +9,8 @@ const entrySchema = new mongoose.Schema({
   valueMillion: Number,
   snapshotURL: String,
   probability: { type: String, enum: ['A','B','C','D','E'], default: null },
-  status: { type: String, enum: ['In-progress','Won','Abandoned'], default: 'In-progress' }
+  status: { type: String, enum: ['In-progress','Won','Abandoned'], default: 'In-progress' },
+  comment: { type: String, default: '' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Entry', entrySchema);
