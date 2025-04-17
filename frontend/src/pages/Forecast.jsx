@@ -8,28 +8,30 @@ export default function Forecast() {
   const [entries, setEntries] = useState([]);
   const [isEditing, setEdit]  = useState(false);
 
-  const months = [
+  const MONTHS = [
     'Apr','May','Jun','Jul','Aug','Sep',
     'Oct','Nov','Dec','Jan','Feb','Mar'
   ];
 
+  // fetch FYs
   useEffect(() => {
     API.get('/entries/years', { params: { type: 'forecast' } })
-      .then(r => { setYears(r.data.years); setYear(r.data.years[0]); })
-      .catch(console.error);
+       .then(r => { setYears(r.data.years); setYear(r.data.years[0]); })
+       .catch(console.error);
   }, []);
 
+  // fetch rows
   useEffect(() => {
     if (!year) return;
     API.get('/entries', { params: { type: 'forecast', year } })
-      .then(r => setEntries(r.data))
-      .catch(console.error);
+       .then(r => setEntries(r.data))
+       .catch(console.error);
   }, [year]);
 
   const handleChange = (idx, field, val) => {
     setEntries(es => {
       const a = [...es];
-      a[idx][field] = months.includes(field) ? Number(val) : val;
+      a[idx][field] = MONTHS.includes(field) ? Number(val) : val;
       return a;
     });
   };
@@ -40,7 +42,7 @@ export default function Forecast() {
       BU:'',VDE:'',GDE:'',account:'',
       Apr:0,May:0,Jun:0,Jul:0,Aug:0,Sep:0,
       Oct:0,Nov:0,Dec:0,Jan:0,Feb:0,Mar:0,
-      total:0,comments:''
+      comments:''
     };
     setEntries(es => [...es, blank]);
     setEdit(true);
@@ -54,24 +56,25 @@ export default function Forecast() {
 
   const save = () => {
     API.post('/entries', { type:'forecast', year, entries })
-      .then(() => {
-        setEdit(false);
-        return API.get('/entries', { params:{ type:'forecast', year }});
-      })
-      .then(r => setEntries(r.data))
-      .catch(console.error);
+       .then(() => {
+         setEdit(false);
+         return API.get('/entries', { params:{ type:'forecast', year }});
+       })
+       .then(r => setEntries(r.data))
+       .catch(console.error);
   };
 
   const exportCSV = () => {
-    // now goes to /api/entries/export via the proxy
     window.open(`/api/entries/export?type=forecast&year=${year}`, '_blank');
   };
 
+  // sum per row
   const rowTotal = row =>
-    months.reduce((sum,m)=>sum+(row[m]||0),0).toFixed(2);
+    MONTHS.reduce((sum,m)=>sum+(row[m]||0),0).toFixed(2);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      {/* toolbar */}
       <div className="flex flex-wrap items-center mb-4 space-x-2">
         <select
           className="border rounded px-2 py-1 bg-white"
@@ -86,8 +89,8 @@ export default function Forecast() {
 
         <button
           onClick={exportCSV}
-          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-        >Export CSV</button>
+          className="bg-teal-600 text-white px-3 py-1 rounded hover:bg-teal-700"
+        >Export as CSV</button>
 
         {isEditing ? (
           <>
@@ -97,13 +100,13 @@ export default function Forecast() {
             >Save</button>
             <button
               onClick={cancel}
-              className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
+              className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
             >Cancel</button>
           </>
         ) : (
           <button
             onClick={()=>setEdit(true)}
-            className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
           >Edit</button>
         )}
 
@@ -115,35 +118,64 @@ export default function Forecast() {
         )}
       </div>
 
-      <div className="overflow-x-auto border rounded bg-white shadow">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-100 sticky top-0">
+      {/* scrollable table container */}
+      <div className="border rounded bg-white shadow overflow-auto"
+           style={{ maxHeight: '70vh' }}>
+        <table className="min-w-max border-collapse">
+          <thead>
             <tr>
               {[
                 'Account Name','Delivery Manager','Project Name',
                 'BU','VDE','GDE','Account',
-                ...months,
+                ...MONTHS,
                 'Total','Comments',''
-              ].map(h=>(
-                <th key={h}
-                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  {h}
-                </th>
-              ))}
+              ].map((h,i) => {
+                // header colors & sticky
+                let bg = '';
+                if (i < 7)         bg = 'bg-blue-100';
+                else if (i < 7+MONTHS.length) bg = 'bg-yellow-100';
+                else if (i < 7+MONTHS.length+2) bg = 'bg-blue-200';
+                else                bg = 'bg-white';
+
+                // compute z-index for sticky layering
+                let z = 10;
+                if (i < 7) z = 30 - i;    // first 7 columns
+                else if (i === 7) z = 15; // first month
+
+                return (
+                  <th
+                    key={h}
+                    className={`px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b ${bg} sticky top-0`}
+                    style={{ zIndex: z }}
+                  >
+                    {h}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-gray-100">
+          <tbody>
             {entries.map((row,i) => (
               <tr key={i} className="hover:bg-gray-50">
+                {/* first 7 cols */}
                 {[
                   'accountName','deliveryManager','projectName',
                   'BU','VDE','GDE','account'
-                ].map(f=>(
-                  <td key={f} className="px-2 py-1">
+                ].map((f,colIdx) => (
+                  <td
+                    key={f}
+                    className="px-4 py-2 border-b text-sm"
+                    style={{
+                      position: 'sticky',
+                      left: `${colIdx * 10}rem`,  // adjust 10rem per col
+                      background: 'white',
+                      zIndex: 20 - colIdx
+                    }}
+                  >
                     {isEditing
                       ? <input
-                          className="w-full border rounded px-1 py-1"
+                          className="w-full border rounded px-2 py-1 text-sm"
                           value={row[f]||''}
                           onChange={e=>handleChange(i,f,e.target.value)}
                         />
@@ -152,12 +184,13 @@ export default function Forecast() {
                   </td>
                 ))}
 
-                {months.map(m=>(
-                  <td key={m} className="px-2 py-1 text-right">
+                {/* month columns */}
+                {MONTHS.map(m => (
+                  <td key={m} className="px-4 py-2 border-b text-right text-sm bg-yellow-50">
                     {isEditing
                       ? <input
                           type="number" step="0.01"
-                          className="w-full border rounded px-1 py-1"
+                          className="w-full border rounded px-2 py-1 text-sm"
                           value={row[m]}
                           onChange={e=>handleChange(i,m,e.target.value)}
                         />
@@ -166,14 +199,16 @@ export default function Forecast() {
                   </td>
                 ))}
 
-                <td className="px-2 py-1 text-right font-semibold">
+                {/* total */}
+                <td className="px-4 py-2 border-b text-right font-semibold bg-blue-200">
                   ${rowTotal(row)}
                 </td>
 
-                <td className="px-2 py-1">
+                {/* comments */}
+                <td className="px-4 py-2 border-b text-sm bg-blue-200">
                   {isEditing
                     ? <input
-                        className="w-full border rounded px-1 py-1"
+                        className="w-full border rounded px-2 py-1 text-sm"
                         value={row.comments||''}
                         onChange={e=>handleChange(i,'comments',e.target.value)}
                       />
@@ -181,11 +216,12 @@ export default function Forecast() {
                   }
                 </td>
 
-                <td className="px-2 py-1 text-center">
+                {/* delete icon for new rows */}
+                <td className="px-4 py-2 border-b text-center bg-white">
                   {isEditing && !row._id && (
                     <button
                       className="text-red-500 hover:text-red-700"
-                      onClick={()=>setEntries(es => es.filter((_,idx)=>idx!==i))}
+                      onClick={()=>setEntries(es => es.filter((_,x)=>x!==i))}
                     >🗑</button>
                   )}
                 </td>
