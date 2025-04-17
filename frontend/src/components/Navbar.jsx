@@ -9,6 +9,7 @@ export default function Navbar() {
       <NavLink to="/forecast">Forecast</NavLink>
       <NavLink to="/opportunities">Opportunities</NavLink>
       <NavLink to="/new-fy">New FY</NavLink>
+      <NavLink to="/actuals">Actuals</NavLink>
       <div className="ml-auto">
         <button onClick={()=>{/* logout logic */}}>Logout</button>
       </div>
