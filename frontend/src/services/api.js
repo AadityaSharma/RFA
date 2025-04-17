@@ -19,3 +19,17 @@ export const importActuals = file => {
   return API.post('/actuals/import', fd);
 };
 export const fetchDashboard = q => API.get('/dashboard/summary',{params:q});
+
+export const createProject = data => API.post('/projects', data);
+export const setAOPTarget = ({ projectId, year, month, valueMillion }) =>
+  API.put(`/projects/${projectId}/aop`, { year, month, valueMillion });
+
+// Export CSV/XLSX endpoints
+export const exportActuals = () =>
+  API.get('/actuals/export', { responseType: 'blob' });
+
+export const exportEntries = type =>
+  API.get('/entries/export', {
+    params: { type },
+    responseType: 'blob'
+  });
