@@ -1,4 +1,5 @@
 const Actual = require('../models/Actual');
+const Entry   = require('../models/Entry');
 const Project = require('../models/Project');
 const { parseFile } = require('../utils/csvParser');
 
@@ -82,4 +83,48 @@ exports.exportActuals = async (req, res, next) => {
   } catch (e) {
     next(e);
   }
+};
+
+exports.importActuals = async (req, res, next) => {
+  try {
+    const year = +req.body.year;
+    const rows = await parseFile(req.file.path);
+    const months = [4,5,6,7,8,9,10,11,12,1,2,3];
+    const labels = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+    const mismatches = [];
+
+    for (const r of rows) {
+      // must match both account+project
+      const proj = await Project.findOne({
+        account: r.accountName,
+        name:    r.projectName
+      });
+      if (!proj) {
+        mismatches.push(`${r.accountName}/${r.projectName}`);
+        continue;
+      }
+      for (let i = 0; i < 12; i++) {
+        const val = parseFloat(r[labels[i]]) || 0;
+        await Entry.findOneAndUpdate(
+          {
+            projectId: proj._id,
+            year,
+            month: months[i],
+            type: 'actual'
+          },
+          { valueMillion: val },
+          { upsert: true, setDefaultsOnInsert: true }
+        );
+      }
+    }
+
+    if (mismatches.length) {
+      return res.status(400).json({
+        error: 'Some rows did not match any project:',
+        details: mismatches
+      });
+    }
+    res.json({ success: true, imported: rows.length });
+  }
+  catch(err){ next(err) }
 };
