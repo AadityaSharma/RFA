@@ -24,3 +24,6 @@ export const newFY = file => {
   return API.post('/admin/newfy', fd);
 };
 export const fetchDashboard = q => API.get('/dashboard/summary',{params:q});
+
+export const exportEntries = type =>
+  API.get(`/entries/export?type=${type}`, { responseType: 'blob' });
