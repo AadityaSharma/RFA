@@ -13,12 +13,10 @@ API.interceptors.request.use(req => {
 });
 export const signup = data => API.post('/auth/signup', data);
 export const login = data => API.post('/auth/login', data);
-export const fetchProjects = () => API.get('/projects');
 export const createProject = d => API.post('/projects', d);
 export const assignManagers = (id, m) => API.put(`/projects/${id}/assign`, { managerIds: m });
 export const setAOP = (id, d) => API.put(`/projects/${id}/aop`, d);
 export const fetchEntries = q => API.get('/entries',{params:q});
-export const upsertEntry = fd => API.post('/entries', fd);
 export const importActuals = file => {
   const fd = new FormData(); fd.append('file',file);
   return API.post('/actuals/import', fd);
@@ -30,18 +28,11 @@ export const newFY = file => {
 };
 export const fetchDashboard = q => API.get('/dashboard/summary',{params:q});
 
-export const exportEntries = type =>
-  API.get(`/entries/export?type=${type}`, { responseType: 'blob' });
-
-
 export const fetchYears = (type='forecast') =>
   API.get(`/entries/years?type=${type}`);
 
 export const fetchProjects = () =>
   API.get('/projects');
-
-export const fetchEntries = params =>
-  API.get('/entries', { params });
 
 export const upsertEntry = payload =>
   API.post('/entries', payload);
