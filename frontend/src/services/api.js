@@ -33,3 +33,5 @@ export const exportEntries = type =>
     params: { type },
     responseType: 'blob'
   });
+
+export const signup = data => API.post('/auth/signup', data);
