@@ -1,16 +1,37 @@
-/* frontend/src/pages/Forecast.css */
-
-/* freeze header row */
+/* Freeze top row */
 .forecast-table thead th {
   position: sticky;
   top: 0;
+  background: #f5f5f5;
   z-index: 10;
 }
 
-/* freeze first column */
-.forecast-table td:first-child,
-.forecast-table th:first-child {
+/* Freeze first column */
+.sticky-col {
   position: sticky;
   left: 0;
+  background: white;
   z-index: 5;
+}
+
+/* Column width hints */
+.month-col {
+  min-width: 80px;
+}
+.total-col {
+  min-width: 100px;
+  background: #ebf8ff;
+}
+.comments-col {
+  min-width: 180px;
+}
+.cell-input {
+  width: 100%;
+  border: 1px solid #ddd;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+.new-row {
+  background: #fffbeb;
 }
