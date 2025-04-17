@@ -12,11 +12,15 @@ exports.getYears = async (req, res, next) => {
   }
 };
 
-exports.list = async (req, res, next) => {
-  const q = { ...req.query };
-  if (req.user.role === 'manager') q.managerId = req.user._id;
-  const entries = await Entry.find(q);
-  res.json(entries);
+exports.list = async (req,res,next) => {
+  try {
+    const q = { type: req.query.type };
+    if (req.user.role === 'manager') q.managerId = req.user._id;
+    if (req.query.year)  q.year  = +req.query.year;
+    if (req.query.month) q.month = +req.query.month;
+    const entries = await Entry.find(q).lean();
+    res.json(entries);
+  } catch(e){ next(e) }
 };
 
 exports.upsert = async (req, res, next) => {
