@@ -1,291 +1,292 @@
 // frontend/src/pages/Forecast.jsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
-  fetchForecastYears,
-  fetchForecastEntries,
-  exportForecastCSV,
-  saveForecastEntries
+  fetchEntries,
+  fetchYears,
+  fetchProjects,
+  upsertEntry,
+  exportEntries
 } from '../services/api'
-
-const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+import './Forecast.css' // see CSS snippet below
 
 export default function Forecast() {
-  const [year, setYear]       = useState('')
-  const [years, setYears]     = useState([])
+  const [years, setYears] = useState([])
+  const [projects, setProjects] = useState([])
   const [entries, setEntries] = useState([])
-  const [editing, setEditing] = useState(false)
+  const [selectedYear, setSelectedYear] = useState(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [draftEntries, setDraftEntries] = useState([])
+  const tableWrapper = useRef()
 
-  // 1) load FY list
+  // load years & projects on mount
   useEffect(() => {
-    fetchForecastYears().then((yrs) => {
-      setYears(yrs)
-      if (yrs.length) setYear(yrs[0])
+    fetchYears('forecast').then(res => {
+      const y = res.data.years || []
+      setYears(y)
+      if (y.length) setSelectedYear(y[0])
     })
+    fetchProjects().then(res => setProjects(res.data))
   }, [])
 
-  // 2) load table when year changes
+  // reload entries whenever year changes
   useEffect(() => {
-    if (!year) return
-    fetchForecastEntries(year).then(setEntries)
-  }, [year])
+    if (!selectedYear) return
+    fetchEntries({ type: 'forecast', year: selectedYear }).then(res => {
+      setEntries(res.data)
+      setDraftEntries(res.data.map(e => ({ ...e })))
+    })
+  }, [selectedYear])
 
-  // 3) Export CSV
+  // Export CSV
   const handleExport = () => {
-    exportForecastCSV(year)
+    exportEntries('forecast', selectedYear)
+      .then(res => {
+        const blob = new Blob([res.data], { type: 'text/csv' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `forecast_${selectedYear}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+      })
+      .catch(console.error)
   }
 
-  // 4) Add a new local row
-  const handleAdd = () => {
-    setEntries(es => [
-      ...es,
+  // Save all edited rows
+  const handleSave = async () => {
+    try {
+      await Promise.all(
+        draftEntries.map(e =>
+          upsertEntry({ ...e, type: 'forecast', year: selectedYear })
+        )
+      )
+      setIsEditing(false)
+      // reload
+      fetchEntries({ type: 'forecast', year: selectedYear }).then(res => {
+        setEntries(res.data)
+        setDraftEntries(res.data.map(e => ({ ...e })))
+      })
+    } catch (err) {
+      console.error(err)
+      alert('Failed to save')
+    }
+  }
+
+  // Cancel edits
+  const handleCancel = () => {
+    setDraftEntries(entries.map(e => ({ ...e })))
+    setIsEditing(false)
+  }
+
+  // Add a new blank row
+  const handleAddRow = () => {
+    setDraftEntries([
+      ...draftEntries,
       {
-        id: `NEW_${Date.now()}`,         // temporary client‑only id
         accountName: '',
         deliveryManager: '',
         projectName: '',
-        bu: '', vde: '', gde: '', account: '',
-        months: Array(12).fill(''),
-        total: 0,
-        comments: '',
-        isNew: true
+        BU: '',
+        VDE: '',
+        GDE: '',
+        account: '',
+        // months apr..mar
+        apr: 0, may: 0, jun: 0, jul: 0, aug: 0, sep: 0,
+        oct: 0, nov: 0, dec: 0, jan: 0, feb: 0, mar: 0,
+        comments: ''
       }
     ])
-    setEditing(true)
+    setIsEditing(true)
+    // scroll to bottom
+    setTimeout(
+      () =>
+        tableWrapper.current.scrollTo({
+          top: tableWrapper.current.scrollHeight,
+          behavior: 'smooth'
+        }),
+      100
+    )
   }
 
-  // 5) Delete only client‑only rows
-  const handleDelete = idx => {
-    setEntries(es => es.filter((_,i) => i !== idx))
-  }
-
-  // 6) Save all edits back up
-  const handleSave = () => {
-    saveForecastEntries(year, entries)
-      .then(() => {
-        setEditing(false)
-        return fetchForecastEntries(year)
-      })
-      .then(setEntries)
-  }
-
-  // 7) Cancel edits (reload original)
-  const handleCancel = () => {
-    setEditing(false)
-    fetchForecastEntries(year).then(setEntries)
+  // Update a single cell in draftEntries
+  const handleChange = (idx, field, value) => {
+    const updated = draftEntries.map((row, i) =>
+      i === idx ? { ...row, [field]: value } : row
+    )
+    setDraftEntries(updated)
   }
 
   return (
-    <div className="p-4 space-y-4">
-      {/* CONTROLS */}
-      <div className="flex items-center space-x-2">
+    <div className="p-6">
+      <div className="flex items-center mb-4 space-x-2">
         <select
           className="border px-2 py-1 rounded"
-          value={year}
-          onChange={e => setYear(e.target.value)}
-          disabled={editing}
+          value={selectedYear || ''}
+          onChange={e => setSelectedYear(e.target.value)}
         >
-          {years.map(y => <option key={y} value={y}>{y}</option>)}
+          {years.map(y => (
+            <option key={y} value={y}>
+              FY {y}
+            </option>
+          ))}
         </select>
-
         <button
-          className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
           onClick={handleExport}
-          disabled={editing || !year}
+          className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700"
         >
           Export as CSV
         </button>
-
-        {!editing
-          ? <button
-              className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-              onClick={() => setEditing(true)}
-            >Edit</button>
-          : <>
-              <button
-                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                onClick={handleSave}
-              >Save</button>
-              <button
-                className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                onClick={handleCancel}
-              >Cancel</button>
-            </>
-        }
-
-        {editing &&
+        {isEditing ? (
+          <>
+            <button
+              onClick={handleSave}
+              className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
+            >
+              Save
+            </button>
+            <button
+              onClick={handleCancel}
+              className="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
           <button
-            className="ml-auto bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
-            onClick={handleAdd}
-          >+ Add Project</button>
-        }
+            onClick={() => setIsEditing(true)}
+            className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
+          >
+            Edit
+          </button>
+        )}
+        <button
+          onClick={handleAddRow}
+          className="ml-auto bg-indigo-600 text-white px-4 py-1 rounded hover:bg-indigo-700"
+        >
+          + Add Project
+        </button>
       </div>
 
-      {/* TABLE */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full table-fixed border-collapse">
-          <thead>
+      <div
+        ref={tableWrapper}
+        className="overflow-auto border rounded shadow"
+        style={{ maxHeight: '70vh' }}
+      >
+        <table className="min-w-full table-auto border-collapse forecast-table">
+          <thead className="bg-gray-100">
             <tr>
-              {/* FIRST COLUMN STICKY */}
-              <th
-                className="bg-blue-100 border px-2 py-1 text-left text-sm font-semibold"
-                style={{ position:'sticky', top:0, left:0, zIndex:50, minWidth:150 }}
-              >Account Name</th>
-
-              {/* remaining columns */}
-              {[
-                'Delivery Manager','Project Name','BU','VDE','GDE','Account',
-                ...MONTHS,'Total','Comments',''
-              ].map((h,i) => (
-                <th
-                  key={i}
-                  className={
-                    i < 6
-                      ? 'bg-blue-100'
-                      : i < 6 + MONTHS.length
-                        ? 'bg-yellow-100'
-                        : 'bg-blue-200'
-                    + ' border px-2 py-1 text-left text-sm font-semibold'
-                  }
-                  style={{ position:'sticky', top:0, zIndex:30, backgroundClip:'padding-box' }}
-                >{h}</th>
+              <th className="sticky left-0 bg-gray-100">Account Name</th>
+              <th>Delivery Manager</th>
+              <th>Project Name</th>
+              <th>BU</th>
+              <th>VDE</th>
+              <th>GDE</th>
+              <th>Account</th>
+              {['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'].map(m => (
+                <th key={m} className="bg-yellow-200">
+                  {m}
+                </th>
               ))}
+              <th className="bg-blue-100">Total</th>
+              <th>Comments</th>
             </tr>
           </thead>
           <tbody>
-            {entries.map((row, idx) => (
-              <tr
-                key={row.id}
-                className={idx%2 ? 'bg-white' : 'bg-gray-50'}
-              >
-                {/* STICKY FIRST CELL */}
-                <td
-                  className="border px-2 py-1 text-sm whitespace-nowrap"
-                  style={{ position:'sticky', left:0, background:'#f3f4f6', zIndex:20 }}
-                >
-                  {editing
-                    ? <input
-                        className="w-full border rounded px-1 py-0.5 text-sm"
-                        value={row.accountName}
-                        onChange={e => {
-                          const v=e.target.value
-                          setEntries(es=>{
-                            const copy=[...es]
-                            copy[idx].accountName=v
-                            return copy
-                          })
-                        }}
-                      />
-                    : row.accountName
-                  }
-                </td>
-
-                {/* REMAINING NON‑STICKY CELLS */}
-                {[
-                  row.deliveryManager, row.projectName,
-                  row.bu, row.vde, row.gde, row.account
-                ].map((val,i) => (
-                  <td key={i} className="border px-2 py-1 text-sm whitespace-nowrap">
-                    {editing
-                      ? <input
-                          className="w-full border rounded px-1 py-0.5 text-sm"
-                          value={val}
-                          onChange={e=>{
-                            const v=e.target.value
-                            const field=[
-                              'deliveryManager','projectName',
-                              'bu','vde','gde','account'
-                            ][i]
-                            setEntries(es=>{
-                              const copy=[...es]
-                              copy[idx][field]=v
-                              return copy
-                            })
-                          }}
-                        />
-                      : val
-                    }
+            {draftEntries.map((row, i) => {
+              const total = [
+                row.apr,row.may,row.jun,row.jul,row.aug,row.sep,
+                row.oct,row.nov,row.dec,row.jan,row.feb,row.mar
+              ].reduce((a,b) => a + Number(b || 0), 0)
+              return (
+                <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                  <td className="sticky left-0 bg-white border px-2 py-1">
+                    <input
+                      disabled={!isEditing}
+                      value={row.accountName}
+                      onChange={e => handleChange(i, 'accountName', e.target.value)}
+                      className="w-full border p-1 rounded"
+                    />
                   </td>
-                ))}
-
-                {/* MONTHS */}
-                {row.months.map((mval,mi) => (
-                  <td key={mi} className="border px-2 py-1 text-right text-sm whitespace-nowrap">
-                    {editing
-                      ? <input
-                          className="w-full border rounded px-1 py-0.5 text-sm text-right"
-                          value={mval}
-                          onChange={e=>{
-                            const v=e.target.value
-                            setEntries(es=>{
-                              const copy=[...es]
-                              copy[idx].months[mi]=v
-                              copy[idx].total = copy[idx].months
-                                .map(n=>parseFloat(n)||0)
-                                .reduce((a,b)=>a+b,0)
-                              return copy
-                            })
-                          }}
-                        />
-                      : (isNaN(parseFloat(mval)) ? mval : `$${parseFloat(mval).toFixed(2)}`)
-                    }
+                  <td className="border px-2 py-1">
+                    <input
+                      disabled={!isEditing}
+                      value={row.deliveryManager}
+                      onChange={e => handleChange(i, 'deliveryManager', e.target.value)}
+                      className="w-full border p-1 rounded"
+                    />
                   </td>
-                ))}
-
-                {/* TOTAL */}
-                <td className="border px-2 py-1 text-right font-semibold text-sm">
-                  ${row.total.toFixed(2)}
-                </td>
-
-                {/* COMMENTS */}
-                <td className="border px-2 py-1 text-sm">
-                  {editing
-                    ? <input
-                        className="w-full border rounded px-1 py-0.5 text-sm"
-                        value={row.comments}
-                        onChange={e=>{
-                          const v=e.target.value
-                          setEntries(es=>{
-                            const copy=[...es]
-                            copy[idx].comments=v
-                            return copy
-                          })
-                        }}
+                  <td className="border px-2 py-1">
+                    <input
+                      disabled={!isEditing}
+                      value={row.projectName}
+                      onChange={e => handleChange(i, 'projectName', e.target.value)}
+                      className="w-full border p-1 rounded"
+                    />
+                  </td>
+                  <td className="border px-2 py-1">
+                    <input
+                      disabled={!isEditing}
+                      value={row.BU}
+                      onChange={e => handleChange(i, 'BU', e.target.value)}
+                      className="w-full border p-1 rounded"
+                    />
+                  </td>
+                  <td className="border px-2 py-1">
+                    <input
+                      disabled={!isEditing}
+                      value={row.VDE}
+                      onChange={e => handleChange(i, 'VDE', e.target.value)}
+                      className="w-full border p-1 rounded"
+                    />
+                  </td>
+                  <td className="border px-2 py-1">
+                    <input
+                      disabled={!isEditing}
+                      value={row.GDE}
+                      onChange={e => handleChange(i, 'GDE', e.target.value)}
+                      className="w-full border p-1 rounded"
+                    />
+                  </td>
+                  <td className="border px-2 py-1">
+                    <input
+                      disabled={!isEditing}
+                      value={row.account}
+                      onChange={e => handleChange(i, 'account', e.target.value)}
+                      className="w-full border p-1 rounded"
+                    />
+                  </td>
+                  {['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar'].map(mon => (
+                    <td key={mon} className="border px-2 py-1">
+                      <input
+                        type="number"
+                        disabled={!isEditing}
+                        value={row[mon]}
+                        onChange={e => handleChange(i, mon, e.target.value)}
+                        className="w-full border p-1 rounded text-right"
                       />
-                    : row.comments
-                  }
-                </td>
-
-                {/* DELETE ICON */}
-                <td className="border px-2 py-1 text-center">
-                  {editing && row.isNew && (
-                    <button
-                      className="text-red-500 hover:text-red-700"
-                      onClick={()=>handleDelete(idx)}
-                    >&times;</button>
-                  )}
+                    </td>
+                  ))}
+                  <td className="bg-blue-100 border px-2 py-1 text-right font-semibold">
+                    ${total.toFixed(2)}
+                  </td>
+                  <td className="border px-2 py-1">
+                    <input
+                      disabled={!isEditing}
+                      value={row.comments}
+                      onChange={e => handleChange(i, 'comments', e.target.value)}
+                      className="w-full border p-1 rounded"
+                    />
+                  </td>
+                </tr>
+              )
+            })}
+            {draftEntries.length === 0 && (
+              <tr>
+                <td colSpan={20} className="text-center py-4">
+                  No data.
                 </td>
               </tr>
-            ))}
-
-            {/* BOTTOM TOTALS */}
-            <tr className="bg-gray-100 font-semibold">
-              <td colSpan={1} className="border px-2 py-1 text-right">Totals:</td>
-              <td colSpan={6} className="border px-2 py-1" />
-              {MONTHS.map((_,mi) => {
-                const sum = entries
-                  .reduce((s,r)=>s + (parseFloat(r.months[mi])||0), 0)
-                return (
-                  <td key={mi} className="border px-2 py-1 text-right">
-                    ${sum.toFixed(2)}
-                  </td>
-                )
-              })}
-              <td className="border px-2 py-1 text-right">
-                ${entries.reduce((s,r)=>s + r.total, 0).toFixed(2)}
-              </td>
-              <td className="border px-2 py-1" />
-              <td className="border px-2 py-1" />
-            </tr>
+            )}
           </tbody>
         </table>
       </div>
