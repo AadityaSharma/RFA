@@ -1,0 +1,25 @@
+// backend/package.json
+{
+  "name": "revenue-forecasting-backend",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "bcrypt": "...",
+    "cors": "...",
+    "csvtojson": "...",
+    "dotenv": "...",
+    "express": "...",
+    "jsonwebtoken": "...",
+    "mongoose": "...",
+    "morgan": "...",
+    "multer": "...",
+    "xlsx": "..."
+  },
+  "devDependencies": {
+    "nodemon": "..."
+  }
+}
