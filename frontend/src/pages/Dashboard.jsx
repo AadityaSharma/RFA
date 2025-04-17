@@ -1,4 +1,5 @@
 // frontend/src/pages/Dashboard.jsx
+import React from 'react';
 import { useEffect,useState } from 'react';
 import { fetchDashboard } from '../services/api';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
