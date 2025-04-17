@@ -1,0 +1,4 @@
+accountName,deliveryManager,projectName,BU,VDE,GDE,account,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec,Jan,Feb,Mar,total,probability,status,comments
+Cust_01,DL_01,Oppty A,BU1,VDE1,GDE1,Account1,0.35,0.45,0.55,0.65,0.75,0.85,0.95,1.05,1.15,1.25,1.35,1.45,11.20,A/B/C,In-progress,Good pipeline
+Cust_02,DL_02,Oppty B,BU2,VDE2,GDE2,Account2,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,7.8,D/E,Abandoned,Resource gaps
+Cust_03,DL_03,Oppty C,BU3,VDE3,GDE3,Account3,0,0,0,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,6.3,A/B,Won,Closed deal
