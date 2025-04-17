@@ -89,8 +89,10 @@
 
 /* 8) Column width hints */
 .month-col {
-  min-width: 80px;
-  text-align: right;
+  min-width: 60px;
+  max-width: 100px;
+  background: #ffedbd;
+  text-align: left;
 }
 .total-col {
   min-width: 100px;
