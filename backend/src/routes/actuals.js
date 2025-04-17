@@ -1,11 +1,17 @@
-const r = require('express').Router();
+const express = require('express');
 const multer = require('multer');
 const { protect, restrictTo } = require('../middleware/auth');
-const ctrl = require('../controllers/actualController');
+const {
+  import: importActuals,
+  list,
+  exportActuals
+} = require('../controllers/actualController');
+
 const upload = multer({ dest: 'uploads/' });
+const router = express.Router();
 
-r.post('/import', protect, restrictTo('admin'), upload.single('file'), ctrl.import);
-r.get('/', protect, ctrl.list);
-r.get('/export', protect, restrictTo('admin'), ctrl.export);
+router.post('/import', protect, restrictTo('admin'), upload.single('file'), importActuals);
+router.get('/',            protect, list);
+router.get('/export',      protect, restrictTo('admin'), exportActuals);
 
-module.exports = r;
+module.exports = router;
