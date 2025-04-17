@@ -21,5 +21,9 @@ app.use('/api/entries', entryRoutes);
 app.use('/api/actuals', actualRoutes);
 app.use('/api/admin', adminRoutes);
 
+app.use('/api/entries', require('./routes/entries'));
+app.use('/api/actuals', require('./routes/actuals'));
+app.use('/api/fy',      require('./routes/fy'));
+
 app.use(errorHandler);
 module.exports = app;
