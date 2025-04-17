@@ -5,6 +5,8 @@ const { protect, restrictTo } = require('../middleware/auth');
 const ctrl = require('../controllers/entryController');
 const upload = multer({ dest: 'uploads/' });
 
+const { list, upsert, getYears } = require('../controllers/entryController');
+
 const router = express.Router();
 
 // List and upsert as before
@@ -33,5 +35,7 @@ router.get('/export', protect, restrictTo('manager','admin'), async (req, res, n
     next(e);
   }
 });
+
+router.get('/years', protect, getYears);
 
 module.exports = router;
