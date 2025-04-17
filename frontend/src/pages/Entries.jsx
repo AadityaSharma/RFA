@@ -21,16 +21,17 @@ export default function Entries() {
         setGrid(projects.map(p=>m[p._id]||{ projectId:p._id, valueMillion:0 }));
       });
   };
-  const onChange=(idx,v)=>{
-    const row=grid[idx];
-    const fd=new FormData();
-    fd.append('projectId', row.projectId);
-    fd.append('month', month);
-    fd.append('year', year);
-    fd.append('type', type);
-    fd.append('valueMillion', v);
-    saveEntry(fd).then(()=>load());
-  };
+  const onChange = (idx, v, file) => {
+  const row = grid[idx];
+  const fd = new FormData();
+  fd.append('projectId', row.projectId);
+  fd.append('month', month);
+  fd.append('year', year);
+  fd.append('type', type);
+  fd.append('valueMillion', v);
+  if (file) fd.append('snapshot', file);
+  saveEntry(fd).then(()=>load());
+};
   return (
     <div className="p-4">
       <h1 className="text-2xl mb-4">Entries</h1>
@@ -51,11 +52,21 @@ export default function Entries() {
             <tr key={r.projectId} className="border-t">
               <td className="p-2">{projects.find(p=>p._id===r.projectId)?.name}</td>
               <td className="p-2">
-                <input type="number" step="0.1"
-                  value={r.valueMillion}
-                  onChange={e=>onChange(i,e.target.value)}
-                  className="w-24 p-1 border rounded"/>
-              </td>
+  <input
+    type="number"
+    step="0.1"
+    value={r.valueMillion}
+    disabled={r.locked}
+    onChange={e=>onChange(i, e.target.value, null)}
+    className="w-20 p-1 border rounded mr-2"
+  />
+  <input
+    type="file"
+    disabled={r.locked}
+    onChange={e=>onChange(i, r.valueMillion, e.target.files[0])}
+    className="p-1 text-sm"
+  />
+</td>
             </tr>
           ))}
         </tbody>
