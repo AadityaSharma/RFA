@@ -8,6 +8,7 @@ import Opportunities   from './pages/Opportunities';
 import NewFY           from './pages/NewFY';
 import Login           from './pages/Login';
 import Signup          from './pages/Signup';
+import Actuals from './pages/Actuals';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/new-fy" element={<NewFY />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/actuals" element={<Actuals />} />
       </Routes>
     </BrowserRouter>
   );
