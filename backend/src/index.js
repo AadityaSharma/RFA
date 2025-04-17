@@ -232,6 +232,33 @@ app.get('/api/dashboard/summary', protect, async (req,res,next)=>{
   res.json({forecasts,actuals});
 });
 
+
+// Export Actuals
+app.get('/api/actuals/export', protect, restrictTo('admin'), async (req, res, next) => {
+  const all = await Actual.find().lean();
+  const ws = xlsx.utils.json_to_sheet(all);
+  const wb = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(wb, ws, 'Actuals');
+  const buf = xlsx.write(wb, { type:'buffer', bookType:'xlsx' });
+  res.setHeader('Content-Disposition','attachment; filename=actuals.xlsx');
+  res.send(buf);
+});
+
+// Export Entries
+app.get('/api/entries/export', protect, restrictTo('manager','admin'), async (req, res, next) => {
+  const q = {};
+  if (req.query.type) q.type = req.query.type;
+  if (req.user.role==='manager') q.managerId = req.user._id;
+  const all = await Entry.find(q).lean();
+  const ws = xlsx.utils.json_to_sheet(all);
+  const wb = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(wb, ws, 'Entries');
+  const buf = xlsx.write(wb, { type:'buffer', bookType:'xlsx' });
+  res.setHeader('Content-Disposition','attachment; filename=entries.xlsx');
+  res.send(buf);
+});
+
+
 // global error
 app.use((e,_,res,__)=>
   res.status(e.status||500).json({message:e.message})
