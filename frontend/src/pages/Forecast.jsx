@@ -143,8 +143,8 @@ export default function Forecast() {
         <button onClick={handleAddRow} className="ml-auto bg-indigo-600 text-white px-4 py-1 rounded">+ Add Project</button>
       </div>
 
-      <div ref={wrapperRef} className="table-wrapper">
-        <table className="forecast-table">
+      <div ref={wrapperRef} className="table-wrapper" style={{ maxHeight: '65vh' }}>
+        <table className="forecast-table w-max border-collapse min-w-full">
           <thead>
             <tr>
               <th className="sticky-col">Account Name</th>
