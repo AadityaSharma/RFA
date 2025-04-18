@@ -26,8 +26,9 @@ export default function Opportunities() {
   // fetch years & projects
   useEffect(()=>{
     fetchYears('opportunity').then(r=>{
-      setYears(r.data);
-      if (r.data.length) setFy(r.data[0]);
+      const yrs = r.data.years || [];
+      setYears(yrs);
+      if (yrs.length) setFy(r.data[0]);
     });
     fetchProjects().then(r=>setProjects(r.data));
   },[]);
