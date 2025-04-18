@@ -80,6 +80,7 @@
   border-bottom:1px solid var(--ntt-border);
   vertical-align:middle;
   white-space:nowrap;
+  max-width: 140px;
 }
 
 /* inputs */
@@ -94,7 +95,8 @@
 
 /* month columns */
 .month-col {
-  min-width:60px; max-width:100px;
+  min-width:60px; 
+  max-width:100px ! important;
   background:#ffedbd;
   text-align:right;
 }
