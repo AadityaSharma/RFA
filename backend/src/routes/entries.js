@@ -95,6 +95,7 @@ router.post('/', async (req, res) => {
   }
 });
 
+/*
 // 4) GET export CSV
 router.get('/export', async (req, res) => {
   const { type, year } = req.query;
@@ -129,6 +130,6 @@ router.get('/export', async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
-});
+}); */
 
 module.exports = router;
