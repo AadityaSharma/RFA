@@ -1,5 +1,4 @@
-// frontend/src/components/Navbar.jsx
-import React from 'react' import { NavLink, useNavigate } from 'react-router-dom' import Logo from '../assets/logo.svg'
+import React from 'react' import { NavLink, useNavigate } from 'react-router-dom' import Logo from '../assets/logo.svg'  // Place your brand logo SVG/PNG here
 
 export default function Navbar() { const token = localStorage.getItem('token') const navigate = useNavigate() const handleLogout = () => { navigate('/logout') }
 
