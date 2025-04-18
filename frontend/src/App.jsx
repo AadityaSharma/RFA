@@ -1,34 +1,88 @@
 // frontend/src/App.jsx
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-
-import Navbar        from './components/Navbar';
-import Dashboard     from './pages/Dashboard';
-import Forecast      from './pages/Forecast';
-import Opportunities from './pages/Opportunities';
-import Insights       from './pages/Insights';
-import NewFY         from './pages/NewFY';
-import Login         from './pages/Login';
-import Signup        from './pages/Signup';
-import Actuals       from './pages/Actuals';
-import Logout       from './pages/Logout';
+import React from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Navbar       from './components/Navbar'
+import Dashboard    from './pages/Dashboard'
+import Forecast     from './pages/Forecast'
+import Opportunities from './pages/Opportunities'
+import NewFY        from './pages/NewFY'
+import Actuals      from './pages/Actuals'
+import Insights     from './pages/Insights'
+import Login        from './pages/Login'
+import Signup       from './pages/Signup'
++ import Logout       from './pages/Logout'
++ import ProtectedRoute from './components/ProtectedRoute'
 
 export default function App() {
   return (
-    <>
+    <BrowserRouter>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Forecast />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/forecast" element={<Forecast />} />
-        <Route path="/opportunities" element={<Opportunities />} />
-        <Route path="/insights" element={<Insights />} />
-        <Route path="/new-fy" element={<NewFY />} />
-        <Route path="/login" element={<Login />} />
+        {/* Public routes */}
+        <Route path="/login"  element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/actuals" element={<Actuals />} />
-        <Route path="/logout" element={<Logout />} />
++       <Route path="/logout" element={<Logout />} />
+
+        {/* All others require auth */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/forecast"
+          element={
+            <ProtectedRoute>
+              <Forecast />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/opportunities"
+          element={
+            <ProtectedRoute>
+              <Opportunities />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/new-fy"
+          element={
+            <ProtectedRoute>
+              <NewFY />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/actuals"
+          element={
+            <ProtectedRoute>
+              <Actuals />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/insights"
+          element={
+            <ProtectedRoute>
+              <Insights />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* catch‑all redirect to dashboard (or login) */}
+        <Route
+          path="*"
+          element={
+            localStorage.getItem('token')
+              ? <Navigate to="/dashboard" replace />
+              : <Navigate to="/login"     replace />
+          }
+        />
       </Routes>
-    </>
-  );
+    </BrowserRouter>
+  )
 }
