@@ -68,9 +68,23 @@ export function upsertEntries({ type, year, entries }) {
 }
 
 // For convenience, alias single-entry upsert
-export function upsertEntry(entry) {
-  const { type, year, ...rest } = entry;
-  return upsertEntries({ type, year, entries: [rest] });
+/**
+ * Upsert one or more entries
+ * @param {object|object[]} entryOrArray
+ * @param {string} type     // 'forecast' or 'opportunity'
+ * @param {number|string} year
+ */
+export function upsertEntry(entryOrArray, type, year) {
+  const entries = Array.isArray(entryOrArray)
+    ? entryOrArray
+    : [entryOrArray]
+
+  return API.post(
+    `/entries`,                     // POST /api/entries?type=forecast&year=2025
+    { entries },                    // body: { entries: [ { …cleaned fields… } ] }
+    { params: { type, year } }      // -> req.query.type, req.query.year
+  )
 }
+
 
 export default API;
