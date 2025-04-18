@@ -59,34 +59,39 @@ router.get('/', async (req, res) => {
  * upsert an entry (forecast or opportunity or actual)
  */
 router.post('/', async (req, res) => {
-  const data = req.body;
-  // strip out any incoming _id so we don't accidentally try to set it
-  const { _id, ...rest } = data;
-
-  // if they passed an _id, filter on that; otherwise use your composite key
-  const filter = _id
-    ? { _id }
-    : {
-        type: rest.type,
-        year: rest.year,
-        accountName: rest.accountName,
-        projectName: rest.projectName,
-      };
+  const { type, year, entries } = req.body;
+  if (!Array.isArray(entries)) {
+    return res.status(400).json({ message: 'Must send { entries: [] }' });
+  }
 
   try {
-    const entry = await Entry.findOneAndUpdate(
-      filter,
-      { $set: rest },
-      {
-        new: true,
-        upsert: true,
-        setDefaultsOnInsert: true,
-      }
-    );
-    return res.json(entry);
+    // for each entry in the array, upsert by composite key
+    const ops = entries.map(e => {
+      const filter = {
+        projectName: e.projectName,
+        accountName: e.accountName,
+        year,
+        type
+      };
+      const update = { ...e, year, type }; 
+      return {
+        updateOne: {
+          filter,
+          update: { $set: update },
+          upsert: true
+        }
+      };
+    });
+
+    // run them in bulk
+    await Entry.bulkWrite(ops, { ordered: false });
+
+    // return fresh list
+    const saved = await Entry.find({ type, year }).lean();
+    res.json(saved);
   } catch (err) {
-    console.error('upsert entry error:', err);
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: err.message });
   }
 });
 
