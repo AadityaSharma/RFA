@@ -1,266 +1,186 @@
 // frontend/src/pages/Forecast.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
+  fetchEntries,
   fetchYears,
   fetchProjects,
-  fetchEntries,
   upsertEntry,
   exportEntries
 } from '../services/api';
-import { Tooltip } from 'react-tooltip'; // or your preferred tooltip lib
+import { XIcon } from '@heroicons/react/solid';
+import './Forecast.css';
 
-// Month order: Apr (4) → Dec (12), Jan (1) → Mar (3)
-const MONTH_ORDER = [4,5,6,7,8,9,10,11,12,1,2,3];
-const MONTH_LABELS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+const MONTH_KEYS = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar'];
 
 export default function Forecast() {
-  const [years, setYears]       = useState([]);
-  const [fy, setFy]             = useState(null);
+  const [years, setYears] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [grid, setGrid]         = useState([]);
-  const [editing, setEditing]   = useState(false);
+  const [entries, setEntries] = useState([]);
+  const [draftEntries, setDraftEntries] = useState([]);
+  const [year, setYear] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const wrapperRef = useRef();
 
-  // 1) Load fiscal years and projects
+  // load years & projects
   useEffect(() => {
-    fetchYears().then(r => {
-      setYears(r.data);
-      if (r.data.length) setFy(r.data[0]);
+    fetchYears('forecast').then(r => {
+      const y = r.data.years || [];
+      setYears(y);
+      if (y.length) setYear(y[0]);
     });
     fetchProjects().then(r => setProjects(r.data));
   }, []);
 
-  // 2) Whenever FY or projects change, reload entries
+  // when year changes, reload entries
   useEffect(() => {
-    if (fy && projects.length) loadEntries();
-  }, [fy, projects]);
-
-  // 3) Fetch all forecast entries for the chosen FY
-  async function loadEntries() {
-    const resp = await fetchEntries({ year: fy, type: 'forecast' });
-    const entries = resp.data; // each has projectId, month, valueMillion, comment, updatedAt
-
-    // Build a lookup map: key = `${projectId}-${month}`
-    const map = {};
-    entries.forEach(e => { map[`${e.projectId}-${e.month}`] = e; });
-
-    // Build grid rows
-    const rows = projects.map(p => {
-      // collect cell data for each month
-      const cells = MONTH_ORDER.reduce((acc, m) => {
-        acc[m] = map[`${p._id}-${m}`] || {
-          projectId: p._id,
-          month: m,
-          valueMillion: 0,
-          comment: '',
-          updatedAt: null
-        };
-        return acc;
-      }, {});
-      return { project: p, cells };
+    if (!year) return;
+    fetchEntries({ type: 'forecast', year }).then(r => {
+      // normalize month keys (API may return uppercase keys)
+      const normalized = (r.data || []).map(raw => {
+        const obj = { ...raw };
+        MONTH_KEYS.forEach(k => {
+          const up = k.charAt(0).toUpperCase() + k.slice(1);
+          if (raw[up] !== undefined) obj[k] = raw[up];
+        });
+        return obj;
+      });
+      setEntries(normalized);
+      setDraftEntries(normalized.map(e => ({ ...e })));
+      setIsEditing(false);
     });
+  }, [year]);
 
-    setGrid(rows);
-  }
-
-  // 4) Save a single cell on blur
-  async function saveCell(projectId, month, value, comment) {
-    const fd = new FormData();
-    fd.append('projectId', projectId);
-    fd.append('year', fy);
-    fd.append('month', month);
-    fd.append('type', 'forecast');
-    fd.append('valueMillion', value);
-    fd.append('comment', comment);
-    await upsertEntry(fd);
-    await loadEntries();
-  }
-
-  // 5) Export CSV
-  function exportCSV() {
-    exportEntries('forecast').then(res => {
-      const url = URL.createObjectURL(new Blob([res.data], { type:'text/csv' }));
+  // Export CSV
+  const handleExport = () => {
+    exportEntries('forecast', year).then(res => {
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `forecast_${fy}.csv`;
+      a.download = `forecast_${year}.csv`;
       a.click();
+      URL.revokeObjectURL(url);
     });
-  }
-
-  // 6) Freeze logic: lock edits 2 days before month-end
-  const today = new Date();
-  const freezeThreshold = (m) => {
-    const lastDay = new Date(fy, m, 0).getDate();
-    return today.getDate() > lastDay - 2;
   };
 
-  // 7) Calculate footer sums per month
-  const footerSums = MONTH_ORDER.map(m =>
-    grid.reduce((sum, row) => sum + Number(row.cells[m].valueMillion || 0), 0).toFixed(1)
-  );
-  const grandTotal = footerSums.reduce((sum, s) => sum + Number(s), 0).toFixed(1);
+  // Save changes
+  const handleSave = async () => {
+    // batch upsert new + edited rows
+    await Promise.all(
+      draftEntries.map(e => upsertEntry({ ...e, type: 'forecast', year }))
+    );
+    // reload
+    fetchEntries({ type: 'forecast', year }).then(r => {
+      const normalized = (r.data || []).map(raw => {
+        const obj = { ...raw };
+        MONTH_KEYS.forEach(k => {
+          const up = k.charAt(0).toUpperCase() + k.slice(1);
+          if (raw[up] !== undefined) obj[k] = raw[up];
+        });
+        return obj;
+      });
+      setEntries(normalized);
+      setDraftEntries(normalized.map(e => ({ ...e })));
+      setIsEditing(false);
+    });
+  };
+
+  // Cancel edits
+  const handleCancel = () => {
+    setDraftEntries(entries.map(e => ({ ...e })));
+    setIsEditing(false);
+  };
+
+  // Add a new blank row locally
+  const handleAddRow = () => {
+    const blank = {
+      accountName: '', deliveryManager: '', projectName: '', BU: '', VDE: '', GDE: '', account: '',
+      comments: '',
+      __isNew: true,
+      ...MONTH_KEYS.reduce((o,k) => ({ ...o, [k]: 0 }), {})
+    };
+    setDraftEntries(draftEntries.concat(blank));
+    setIsEditing(true);
+    setTimeout(() => {
+      wrapperRef.current.scrollLeft = wrapperRef.current.scrollWidth;
+    }, 100);
+  };
+
+  // Delete just-new rows
+  const handleDeleteRow = idx => {
+    setDraftEntries(draftEntries.filter((_,i) => i!==idx));
+  };
+
+  // Handle single-cell change
+  const handleChange = (idx, field, val) => {
+    const copy = [...draftEntries];
+    copy[idx] = { ...copy[idx], [field]: val };
+    setDraftEntries(copy);
+  };
+
+  // Sum helper
+  const sum = row => MONTH_KEYS.reduce((tot,k) => tot + (parseFloat(row[k])||0), 0);
 
   return (
-    <div className="p-4">
-      {/* Top Bar */}
-      <div className="flex justify-between items-center mb-4">
-        {/* FY Dropdown */}
+    <div className="p-6">
+      <div className="flex items-center mb-4 space-x-2">
         <select
-          value={fy || ''}
-          onChange={e => setFy(+e.target.value)}
-          className="p-2 border rounded"
+          className="border rounded px-2 py-1"
+          value={year||''}
+          onChange={e=>setYear(e.target.value)}
         >
-          {years.map(y => (
-            <option key={y} value={y}>
-              FY {y}–{y+1}
-            </option>
-          ))}
+          {years.map(y=> <option key={y} value={y}>FY {y}</option>)}
         </select>
-
-        {/* Action Buttons */}
-        <div className="space-x-2">
-          <button onClick={exportCSV} className="px-3 py-1 bg-blue-600 text-white rounded">
-            Export as CSV
-          </button>
-          <button
-            onClick={() => setEditing(!editing)}
-            className="px-3 py-1 bg-green-600 text-white rounded"
-          >
-            {editing ? 'Cancel' : 'Edit'}
-          </button>
-          {/* Admin-only “+” could go here */}
-        </div>
+        <button onClick={handleExport} className="bg-green-600 text-white px-4 py-1 rounded">Export CSV</button>
+        {isEditing ? (
+          <>
+            <button onClick={handleSave} className="bg-blue-600 text-white px-4 py-1 rounded">Save</button>
+            <button onClick={handleCancel} className="bg-red-600 text-white px-4 py-1 rounded">Cancel</button>
+          </>
+        ) : (
+          <button onClick={()=>setIsEditing(true)} className="bg-blue-600 text-white px-4 py-1 rounded">Edit</button>
+        )}
+        <button onClick={handleAddRow} className="ml-auto bg-indigo-600 text-white px-4 py-1 rounded">+ Add Project</button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border">
+      <div ref={wrapperRef} className="table-wrapper" style={{ maxHeight: '65vh' }}>
+        <table className="forecast-table w-max border-collapse min-w-full">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 border">Account Name</th>
-              <th className="p-2 border">Delivery Manager</th>
-              <th className="p-2 border">Project Name</th>
-              <th className="p-2 border">BU</th>
-              <th className="p-2 border">VDE</th>
-              <th className="p-2 border">GDE</th>
-              <th className="p-2 border">Account</th>
-              {MONTH_LABELS.map(label => (
-                <th key={label} className="p-2 border">
-                  {label}
-                </th>
-              ))}
-              <th className="p-2 border">Total</th>
-              <th className="p-2 border">Comments</th>
+            <tr>
+              <th className="sticky-col">Account Name</th>
+              <th>Delivery Manager</th>
+              <th>Project Name</th>
+              <th>BU</th>
+              <th>VDE</th>
+              <th>GDE</th>
+              <th>Account</th>
+              {MONTH_KEYS.map(m=> <th key={m} className="month-col">{m.charAt(0).toUpperCase()+m.slice(1)}</th>)}
+              <th className="total-col">Total</th>
+              <th className="comments-col">Comments</th>
             </tr>
           </thead>
           <tbody>
-            {grid.map(({ project, cells }) => {
-              // compute row age on last updated (max over all months)
-              const latest = Math.max(
-                ...MONTH_ORDER.map(m => (cells[m].updatedAt
-                  ? new Date(cells[m].updatedAt).getTime()
-                  : 0))
-              );
-              const ageDays = latest
-                ? (Date.now() - latest) / 86400000
-                : null;
-              const rowClass = ageDays > 14
-                ? 'bg-red-100'
-                : ageDays > 7
-                ? 'bg-yellow-100'
-                : '';
-
-              const rowTotal = MONTH_ORDER
-                .reduce((s,m) => s + Number(cells[m].valueMillion || 0), 0)
-                .toFixed(1);
-
-              return (
-                <tr key={project._id} className={rowClass}>
-                  <td className="p-2 border">{project.accountName}</td>
-                  <td className="p-2 border">{project.managerName}</td>
-                  <td className="p-2 border">{project.name}</td>
-                  <td className="p-2 border">{project.bu}</td>
-                  <td className="p-2 border">{project.vde}</td>
-                  <td className="p-2 border">{project.gde}</td>
-                  <td className="p-2 border">{project.account}</td>
-
-                  {/* 12 month cells */}
-                  {MONTH_ORDER.map(m => {
-                    const cell = cells[m];
-                    const isFrozen = freezeThreshold(m);
-
-                    return (
-                      <td key={m} className="p-1 border text-center">
-                        <input
-                          type="number"
-                          step="0.1"
-                          defaultValue={cell.valueMillion}
-                          disabled={!editing || isFrozen}
-                          onBlur={e =>
-                            saveCell(
-                              project._id,
-                              m,
-                              e.target.value,
-                              cell.comment
-                            )
-                          }
-                          className="w-16 p-1 border rounded"
-                        />
-                      </td>
-                    );
-                  })}
-
-                  <td className="p-2 border font-bold">{rowTotal}</td>
-
-                  {/* Comments + hover clock */}
-                  <td className="p-2 border relative">
-                    <input
-                      type="text"
-                      defaultValue={cells[4].comment} // you may want to consolidate comments per row
-                      disabled={!editing}
-                      onBlur={e =>
-                        saveCell(
-                          project._id,
-                          4,
-                          cells[4].valueMillion,
-                          e.target.value
-                        )
-                      }
-                      className="w-full p-1 border rounded"
-                    />
-                    {latest && (
-                      <Tooltip
-                        anchorSelect=".last-upd-icon"
-                        place="top"
-                        content={new Date(latest).toLocaleDateString('en-US',{
-                          day:'2-digit',
-                          month:'short',
-                          year:'numeric'
-                        })}
-                      >
-                        <span className="last-upd-icon absolute top-1 right-1 cursor-help">
-                          🕒
-                        </span>
-                      </Tooltip>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot className="bg-gray-200 font-bold">
-            <tr>
-              <td className="p-2 border" colSpan={7}>
-                Total
-              </td>
-              {footerSums.map((s,i) => (
-                <td key={i} className="p-2 border">
-                  {s}
+            {draftEntries.map((row,i) => (
+              <tr key={i} className={row.__isNew? 'new-row':''}>
+                {/* Sticky first cell */}
+                <td className="sticky-col"><input disabled={!isEditing} value={row.accountName} onChange={e=>handleChange(i,'accountName',e.target.value)} className="cell-input" /></td>
+                <td><input disabled={!isEditing} value={row.deliveryManager} onChange={e=>handleChange(i,'deliveryManager',e.target.value)} className="cell-input" /></td>
+                <td><input disabled={!isEditing} value={row.projectName} onChange={e=>handleChange(i,'projectName',e.target.value)} className="cell-input" /></td>
+                <td><input disabled={!isEditing} value={row.BU} onChange={e=>handleChange(i,'BU',e.target.value)} className="cell-input" /></td>
+                <td><input disabled={!isEditing} value={row.VDE} onChange={e=>handleChange(i,'VDE',e.target.value)} className="cell-input" /></td>
+                <td><input disabled={!isEditing} value={row.GDE} onChange={e=>handleChange(i,'GDE',e.target.value)} className="cell-input" /></td>
+                <td><input disabled={!isEditing} value={row.account} onChange={e=>handleChange(i,'account',e.target.value)} className="cell-input" /></td>
+                {MONTH_KEYS.map(mon => (
+                  <td key={mon} className="month-col"><input type="number" step="0.01" disabled={!isEditing} value={row[mon]} onChange={e=>handleChange(i,mon,e.target.value)} className="cell-input text-right" /></td>
+                ))}
+                <td className="total-col">${sum(row).toFixed(2)}</td>
+                <td className="comments-col flex items-center">
+                  <input disabled={!isEditing} value={row.comments} onChange={e=>handleChange(i,'comments',e.target.value)} className="cell-input flex-grow" />
+                  {row.__isNew && isEditing && <XIcon onClick={()=>handleDeleteRow(i)} className="h-4 w-4 text-red-600 cursor-pointer" />}
                 </td>
-              ))}
-              <td className="p-2 border">{grandTotal}</td>
-              <td className="p-2 border"></td>
-            </tr>
-          </tfoot>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
     </div>

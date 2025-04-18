@@ -1,3 +1,4 @@
+/* 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/api';
@@ -25,6 +26,56 @@ export default function Login(){
           Sign In
         </button>
       </form>
+    </div>
+  );
+} */
+
+
+// frontend/src/pages/Login.jsx
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import API from '../services/api';
+
+export default function Login() {
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [msg, setMsg]           = useState('');
+  const nav = useNavigate();
+
+  const submit = async e => {
+    e.preventDefault();
+    try {
+      const { data } = await API.post('/auth/login', { email, password });
+      localStorage.setItem('token', data.token);
+      nav('/forecast');
+    } catch (err) {
+      setMsg('Login failed');
+    }
+  };
+
+  return (
+    <div className="max-w-md mx-auto p-4">
+      <h2 className="text-2xl mb-4">Log In</h2>
+      <form onSubmit={submit} className="space-y-3">
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={e=>setEmail(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={e=>setPassword(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+        <button type="submit" className="w-full bg-green-600 text-white p-2 rounded">
+          Log In
+        </button>
+      </form>
+      {msg && <p className="mt-4 text-center">{msg}</p>}
     </div>
   );
 }

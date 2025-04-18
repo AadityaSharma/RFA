@@ -1,18 +1,7 @@
+// backend/src/controllers/entryController.js
 const Entry = require('../models/Entry');
-const AuditLog = require('../models/AuditLog');
 
-exports.getYears = async (req, res, next) => {
-  try {
-    // only return years that have at least one forecast entry
-    const years = await Entry.distinct('year', { type: 'forecast' });
-    years.sort((a,b)=>b-a);           // descending
-    res.json(years);                  // e.g. [2025,2024,2023]
-  } catch (err) {
-    next(err);
-  }
-};
-
-exports.list = async (req,res,next) => {
+exports.list = async (req, res, next) => {
   try {
     const q = { type: req.query.type };
     if (req.user.role === 'manager') q.managerId = req.user._id;
@@ -20,54 +9,74 @@ exports.list = async (req,res,next) => {
     if (req.query.month) q.month = +req.query.month;
     const entries = await Entry.find(q).lean();
     res.json(entries);
-  } catch(e){ next(e) }
+  } catch (err) {
+    next(err);
+  }
 };
 
 exports.upsert = async (req, res, next) => {
   try {
-    const { projectId, year, month, type, valueMillion, probability, status, comment } = req.body;
-    const snapshotURL = req.file ? `/uploads/${req.file.filename}` : undefined;
+    const { projectId, year, month, type, valueMillion, comment, probability, status } = req.body;
+    const data = { projectId, year, month, type, valueMillion, comment, probability, status };
+    await Entry.findOneAndUpdate(
+      { projectId, year, month, type },
+      data,
+      { upsert: true, setDefaultsOnInsert: true }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
 
-    // Find existing entry
-    let e = await Entry.findOne({ projectId, managerId: req.user._id, year, month, type });
-    const now = Date.now();
+exports.getYears = async (req, res, next) => {
+  try {
+    const years = await Entry.distinct('year', { type: req.query.type });
+    years.sort((a,b)=>b-a);
+    res.json(years);
+  } catch (err) {
+    next(err);
+  }
+};
 
-    // Weekly update enforcement
-    if (!e) {
-      const prev = await Entry.findOne({ projectId, managerId: req.user._id, type })
-        .sort({ createdAt: -1 });
-      if (prev && (now - prev.createdAt.getTime()) < 7 * 24 * 60 * 60 * 1000) {
-        throw { status: 400, message: 'You can only update once per week' };
+exports.exportCSV = async (req, res, next) => {
+  try {
+    const { type, year } = req.query;
+    const q = { type };
+    if (year) q.year = +year;
+    const data = await Entry.find(q)
+      .populate('projectId','account name managerName')
+      .lean();
+
+    // Build CSV rows grouped by project
+    const months = [4,5,6,7,8,9,10,11,12,1,2,3];
+    const labels = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+    const rows = {};
+
+    data.forEach(e => {
+      const pid = e.projectId._id.toString();
+      if (!rows[pid]) {
+        rows[pid] = {
+          Account: e.projectId.account,
+          'Delivery Manager': e.projectId.managerName,
+          'Project Name': e.projectId.name
+        };
+        labels.forEach(l => rows[pid][l]='');
       }
-    }
+      const i = months.indexOf(e.month);
+      rows[pid][labels[i]] = e.valueMillion.toString();
+    });
 
-    // Create or update
-    if (e) {
-      await AuditLog.create({
-        entryId: e._id,
-        prevValue: e.valueMillion,
-        newValue: valueMillion,
-        changedBy: req.user._id
-      });
-      e.valueMillion = valueMillion;
-      if (snapshotURL) e.snapshotURL = snapshotURL;
-      if (type === 'opportunity') {
-        e.probability = probability;
-        e.status = status;
-      }
-      e.comment = comment;
-      await e.save();
-    } else {
-      e = await Entry.create({
-        projectId, managerId: req.user._id,
-        year, month, type,
-        valueMillion, snapshotURL,
-        probability, status, comment
-      });
-    }
+    const out = Object.values(rows);
+    if (!out.length) return res.status(204).send();
 
-    res.json(e);
-  } catch (e) {
-    next(e);
+    const header = Object.keys(out[0]).join(',');
+    const lines  = out.map(r => Object.values(r).join(','));
+    const csv    = [header, ...lines].join('\n');
+
+    res.setHeader('Content-Disposition', `attachment; filename=${type}_${year||'all'}.csv`);
+    res.type('text/csv').send(csv);
+  } catch (err) {
+    next(err);
   }
 };

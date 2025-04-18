@@ -15,7 +15,7 @@ export default function Dashboard(){
   }, []);
   return (
     <div className="p-4">
-      <h1 className="text-2xl mb-4">Dashboard</h1>
+      <h1 className="text-2xl mb-4">Insights</h1>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
           <XAxis dataKey="month"/>

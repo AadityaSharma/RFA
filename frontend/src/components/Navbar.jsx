@@ -1,21 +1,19 @@
+// frontend/src/components/Navbar.jsx
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 
-export default function Navbar(){
-  const nav = useNavigate();
-  const logout = () => {
-    localStorage.removeItem('token');
-    nav('/login');
-  };
+export default function Navbar() {
   return (
-    <nav className="bg-gray-800 text-white px-4 py-2 flex justify-between">
-      <div className="space-x-4">
-        <Link to="/" className="hover:underline">Dashboard</Link>
-        <Link to="/forecast" className="hover:underline">Forecast</Link>
-        <Link to="/opportunities" className="hover:underline">Opportunities</Link>
-        <Link to="/admin" className="hover:underline">Admin</Link>
+    <nav className="bg-gray-800 text-white p-3 flex space-x-4">
+      
+      <NavLink to="/forecast">Forecast</NavLink>
+      <NavLink to="/opportunities">Opportunities</NavLink>
+      <NavLink to="/dashboard">Insights</NavLink>
+      <NavLink to="/new-fy">New FY (Admin)</NavLink>
+      <NavLink to="/actuals">Upload Monthly Actuals (Admin)</NavLink>
+      <div className="ml-auto">
+        <button onClick={()=>{/* logout logic */}}>Logout</button>
       </div>
-      <button onClick={logout} className="hover:underline">Logout</button>
     </nav>
   );
 }
