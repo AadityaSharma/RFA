@@ -3,7 +3,7 @@ import {
   fetchEntries,
   fetchYears,
   fetchProjects,
-  upsertEntry,
+  upsertEntries,
   exportEntries
 } from '../services/api'
 import { XIcon } from '@heroicons/react/solid'
@@ -91,12 +91,11 @@ export default function Forecast() {
 
   // Save
   const handleSave = async () => {
-    /* await Promise.all(
-      draftEntries.map(e =>
-        upsertEntry({ ...e, type:'forecast', year })
-      )
-    ) */
-    await upsertEntries(draftEntries, 'forecast', year);
+    await upsertEntries({
+       type: 'forecast',
+       year: year,
+       entries: draftEntries
+    });
     setIsEditing(false)
     // reload
     setYear(year)  // triggers useEffect above
