@@ -69,13 +69,27 @@ export default function Opportunities() {
     })
   }
 
-  // save
+   // save
   const handleSave = async () => {
-    await upsertEntries({
-       type: 'opportunity',
-       year: fy,
-       entries: draftEntries
+    // strip out client‐only fields
+    const clean = draftEntries.map(e => {
+      const { _id, createdAt, updatedAt, __isNew, …rest } = e;
+      return rest;
     });
+
+    await upsertEntries({
+      type:    'opportunity',
+      year:    fy,
+      entries: clean
+    });
+
+    // reload from server
+    fetchEntries({ type:'opportunity', year:fy }).then(r => {
+      // … your existing normalize + setDraftEntries logic …
+    });
+  }
+
+
     // reload
     fetchEntries({ type:'opportunity', year:fy }).then(r => {
       const norm = (r.data||[]).map(raw => {
