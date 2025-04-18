@@ -16,7 +16,7 @@ export default function App() {
     <>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Forecast />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/forecast" element={<Forecast />} />
         <Route path="/opportunities" element={<Opportunities />} />
