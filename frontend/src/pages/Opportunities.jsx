@@ -73,7 +73,7 @@ export default function Opportunities() {
   const handleSave = async () => {
     // strip out client‐only fields
     const clean = draftEntries.map(e => {
-      const { _id, createdAt, updatedAt, __isNew, …rest } = e;
+      const { _id, createdAt, updatedAt, __isNew, ...rest } = e;
       return rest;
     });
 
