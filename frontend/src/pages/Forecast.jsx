@@ -96,7 +96,7 @@ export default function Forecast() {
 
       // months as numbers
       MONTHS.forEach(m => {
-        clean[m] = parseFloat(row[m]) || 
+        clean[m] = parseFloat(row[m]) || 0
       })
 
       return clean
