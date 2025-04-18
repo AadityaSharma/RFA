@@ -1,13 +1,14 @@
+// frontend/src/pages/Opportunities.jsx
 import React, { useState, useEffect, useRef } from 'react'
 import {
   fetchYears,
   fetchProjects,
   fetchEntries,
-  upsertEntry,
+  upsertEntries,
   exportEntries
 } from '../services/api'
 import { XIcon } from '@heroicons/react/solid'
-import '../pages/Forecast.css'    // reuse the same base styles
+import '../pages/Forecast.css'    // reuse the same base table styles
 
 const MONTH_KEYS  = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTH_LABEL = m => m.charAt(0).toUpperCase()+m.slice(1)
@@ -25,17 +26,17 @@ export default function Opportunities() {
   const [filterStatus, setFilterStatus] = useState('')
   const wrapperRef = useRef()
 
-  // load years & projects
+  //–– load years & projects
   useEffect(() => {
     fetchYears('opportunity').then(r => {
-      const ys = r.data.years||[]
+      const ys = r.data.years || []
       setYears(ys)
       if (ys[0]) setFy(ys[0])
     })
     fetchProjects().then(r => setProjects(r.data))
   }, [])
 
-  // reload & normalize on year change
+  //–– when fy changes, reload & normalize keys
   useEffect(() => {
     if (!fy) return
     fetchEntries({ type:'opportunity', year:fy }).then(r => {
@@ -43,7 +44,7 @@ export default function Opportunities() {
         const e = { ...raw }
         MONTH_KEYS.forEach(k => {
           const K = MONTH_LABEL(k)
-          if (raw[K]!==undefined) {
+          if (raw[K] !== undefined) {
             e[k] = raw[K]
             delete e[K]
           }
@@ -56,7 +57,7 @@ export default function Opportunities() {
     })
   }, [fy])
 
-  // CSV export
+  //–– CSV export
   const handleExport = () => {
     exportEntries('opportunity', fy).then(res => {
       const blob = new Blob([res.data], { type:'text/csv' })
@@ -69,82 +70,81 @@ export default function Opportunities() {
     })
   }
 
-   // save
+  //–– Save all edits/new rows in bulk
   const handleSave = async () => {
-    // strip out client‐only fields
+    // strip out client‐only props before sending
     const clean = draftEntries.map(e => {
-      const { _id, createdAt, updatedAt, __isNew, ...rest } = e;
-      return rest;
-    });
+      /* pull off anything we don't want to send */
+      const { _id, createdAt, updatedAt, __isNew, ...rest } = e
+      return rest
+    })
 
     await upsertEntries({
+      entries: clean,
       type:    'opportunity',
-      year:    fy,
-      entries: clean
-    });
-
-    // reload from server
-    fetchEntries({ type:'opportunity', year:fy }).then(r => {
-      // … your existing normalize + setDraftEntries logic …
-    });
-  }
-
-
-    // reload
-    fetchEntries({ type:'opportunity', year:fy }).then(r => {
-      const norm = (r.data||[]).map(raw => {
-        const e = { ...raw }
-        MONTH_KEYS.forEach(k => {
-          const K = MONTH_LABEL(k)
-          if (raw[K]!==undefined) {
-            e[k] = raw[K]
-            delete e[K]
-          }
-        })
-        return e
-      })
-      setEntries(norm)
-      setDraftEntries(norm.map(e=>({ ...e })))
-      setIsEditing(false)
+      year:    fy
     })
+
+    // re‐reload from server
+    const r = await fetchEntries({ type:'opportunity', year:fy })
+    const norm = (r.data||[]).map(raw => {
+      const e = { ...raw }
+      MONTH_KEYS.forEach(k => {
+        const K = MONTH_LABEL(k)
+        if (raw[K] !== undefined) {
+          e[k] = raw[K]
+          delete e[K]
+        }
+      })
+      return e
+    })
+    setEntries(norm)
+    setDraftEntries(norm.map(e=>({ ...e })))
+    setIsEditing(false)
   }
 
-  // cancel
+  //–– Cancel => rollback
   const handleCancel = () => {
     setDraftEntries(entries.map(e=>({ ...e })))
     setIsEditing(false)
   }
 
-  // add new
+  //–– Add a blank new row
   const handleAddRow = () => {
     const blank = {
-      accountName:'', deliveryManager:'', projectName:'',
-      probability:'', status:'In-Progress', comments:'',
-      __isNew:true
+      accountName:     '',
+      deliveryManager: '',
+      projectName:     '',
+      probability:     '',
+      status:          'In-Progress',
+      comments:        '',
+      __isNew:         true
     }
     MONTH_KEYS.forEach(k=> blank[k]=0)
     setDraftEntries(draftEntries.concat(blank))
     setIsEditing(true)
-    setTimeout(()=>wrapperRef.current.scrollLeft = wrapperRef.current.scrollWidth, 100)
+    setTimeout(() => {
+      wrapperRef.current.scrollLeft = wrapperRef.current.scrollWidth
+    }, 100)
   }
 
-  // delete new only
+  //–– Remove an unsaved row
   const handleDeleteRow = idx => {
     setDraftEntries(draftEntries.filter((_,i)=>i!==idx))
   }
 
-  // cell edit
+  //–– One‐cell edit
   const handleChange = (i, fld, val) => {
     const copy = [...draftEntries]
     copy[i]  = { ...copy[i], [fld]: val }
     setDraftEntries(copy)
   }
 
-  // sum helper
+  //–– Sum helper
   const sum = row =>
-    MONTH_KEYS.reduce((acc,k)=>acc + (parseFloat(row[k])||0), 0)
+    MONTH_KEYS.reduce((acc,k)=> acc + (parseFloat(row[k])||0), 0)
 
-  // apply filters, but always show unsaved rows
+  //–– Visibility + always show unsaved (__isNew) rows
   const visible = draftEntries.filter(row => {
     if (row.__isNew) return true
     if (filterProb   && row.probability !== filterProb) return false
@@ -154,9 +154,9 @@ export default function Opportunities() {
 
   return (
     <div className="p-6">
-      {/* controls */}
+      {/* Controls */}
       <div className="flex flex-wrap items-center mb-4 space-x-2">
-        {/* FY selector */}
+        {/* FY */}
         <select
           className="border rounded px-2 py-1"
           value={fy||''}
@@ -188,24 +188,35 @@ export default function Opportunities() {
           {STATUSES.map(s=> <option key={s} value={s}>{s}</option>)}
         </select>
 
-        <button onClick={handleExport} className="bg-green-600 text-white px-4 py-1 rounded">
+        <button onClick={handleExport}
+                className="bg-green-600 text-white px-4 py-1 rounded">
           Export CSV
         </button>
 
         {isEditing
           ? <>
-              <button onClick={handleSave}   className="bg-blue-600 text-white px-4 py-1 rounded">Save</button>
-              <button onClick={handleCancel} className="bg-red-600  text-white px-4 py-1 rounded">Cancel</button>
+              <button onClick={handleSave}
+                      className="bg-blue-600 text-white px-4 py-1 rounded">
+                Save
+              </button>
+              <button onClick={handleCancel}
+                      className="bg-red-600 text-white px-4 py-1 rounded">
+                Cancel
+              </button>
             </>
-          : <button onClick={()=>setIsEditing(true)} className="bg-blue-600 text-white px-4 py-1 rounded">Edit</button>
+          : <button onClick={()=>setIsEditing(true)}
+                    className="bg-blue-600 text-white px-4 py-1 rounded">
+              Edit
+            </button>
         }
 
-        <button onClick={handleAddRow} className="ml-auto bg-indigo-600 text-white px-4 py-1 rounded">
+        <button onClick={handleAddRow}
+                className="ml-auto bg-indigo-600 text-white px-4 py-1 rounded">
           + Add Opportunity
         </button>
       </div>
 
-      {/* table */}
+      {/* Table */}
       <div
         ref={wrapperRef}
         className="overflow-x-auto border rounded table-wrapper"
@@ -228,16 +239,15 @@ export default function Opportunities() {
             </tr>
           </thead>
           <tbody>
-            {visible.map((row,i)=> {
+            {visible.map((row,i) => {
               const isFrozen = row.status==='Abandoned' || row.status==='Won'
-              const rowClass  = row.status==='Abandoned'
+              const rowClass = row.status==='Abandoned'
                 ? 'abandoned-row'
                 : row.status==='Won'
                   ? 'won-row'
                   : ''
               return (
                 <tr key={i} className={`${row.__isNew?'new-row':''} ${rowClass}`}>
-                  {/* Account | Delivery | Project */}
                   {['accountName','deliveryManager','projectName'].map((fld,j)=>(
                     <td key={fld} className={j===0?'sticky-col p-1':'p-1'}>
                       <input
@@ -249,7 +259,7 @@ export default function Opportunities() {
                     </td>
                   ))}
 
-                  {/* Probability */}
+                  {/* probability */}
                   <td className="p-1">
                     <select
                       disabled={!isEditing||isFrozen}
@@ -262,7 +272,7 @@ export default function Opportunities() {
                     </select>
                   </td>
 
-                  {/* Status */}
+                  {/* status */}
                   <td className="p-1">
                     <select
                       disabled={!isEditing}
@@ -275,7 +285,7 @@ export default function Opportunities() {
                     </select>
                   </td>
 
-                  {/* Months */}
+                  {/* months */}
                   {MONTH_KEYS.map(mon=>(
                     <td key={mon} className="month-col p-1 text-right">
                       <input
@@ -289,7 +299,7 @@ export default function Opportunities() {
                     </td>
                   ))}
 
-                  {/* Total */}
+                  {/* total */}
                   <td className="total-col p-1 text-right font-semibold">
                     ${ row.status==='Abandoned'
                         ? '0.00'
@@ -297,7 +307,7 @@ export default function Opportunities() {
                     }
                   </td>
 
-                  {/* Last Updated */}
+                  {/* last updated */}
                   <td className="p-1 text-sm text-gray-600">
                     {row.updatedAt
                       ? new Date(row.updatedAt).toLocaleDateString('en-US',{
@@ -306,7 +316,7 @@ export default function Opportunities() {
                       : '-'}
                   </td>
 
-                  {/* Comments + delete-new */}
+                  {/* comments + delete‑icon */}
                   <td className="comments-col p-1 flex items-center space-x-1">
                     <input
                       disabled={!isEditing||isFrozen}
@@ -314,7 +324,7 @@ export default function Opportunities() {
                       onChange={e=>handleChange(i,'comments',e.target.value)}
                       className="cell-input flex-grow"
                     />
-                    {row.__isNew && isEditing && (
+                    {row.__isNew&&isEditing&&(
                       <XIcon
                         onClick={()=>handleDeleteRow(i)}
                         className="h-4 w-4 text-red-600 cursor-pointer"
