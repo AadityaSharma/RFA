@@ -147,3 +147,11 @@
 .forecast-table thead tr {
   background: var(--ntt-header-bg);
 }
+
+.abandoned-row {
+  opacity: 0.6;
+  background-color: #f5f5f5 !important;
+}
+.won-row {
+  background-color: #e6ffed !important;
+}
