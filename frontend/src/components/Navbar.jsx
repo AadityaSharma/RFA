@@ -11,9 +11,7 @@ export default function Navbar() {
       <NavLink to="/insights">Insights</NavLink>
       <NavLink to="/new-fy">New FY (Admin)</NavLink>
       <NavLink to="/actuals">Upload Monthly Actuals (Admin)</NavLink>
-      <div className="ml-auto">
         <NavLink to="/logout">Logout</NavLink>
-      </div>
     </nav>
   );
 }
