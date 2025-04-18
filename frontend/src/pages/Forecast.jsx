@@ -91,11 +91,12 @@ export default function Forecast() {
 
   // Save
   const handleSave = async () => {
-    await Promise.all(
+    /* await Promise.all(
       draftEntries.map(e =>
         upsertEntry({ ...e, type:'forecast', year })
       )
-    )
+    ) */
+    await upsertEntries(draft entries, 'forecast', year);
     setIsEditing(false)
     // reload
     setYear(year)  // triggers useEffect above
