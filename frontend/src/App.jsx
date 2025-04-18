@@ -11,6 +11,7 @@ import NewFY         from './pages/NewFY';
 import Login         from './pages/Login';
 import Signup        from './pages/Signup';
 import Actuals       from './pages/Actuals';
+import Logout       from './pages/Logout';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/actuals" element={<Actuals />} />
+        <Route path="/logout" element={<Logout />} />
       </Routes>
     </>
   );
