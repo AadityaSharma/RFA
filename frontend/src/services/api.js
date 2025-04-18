@@ -100,7 +100,10 @@ export function exportEntries(type, year) {
  * payload: { entries, type, year }
  */
 export function upsertEntries({ entries, type, year }) {
-  return API.post(`/entries?type=${type}&year=${year}`, { entries })
+  return API.post(
+    '/entries',
+    { entries, type, year }
+  );
 }
 
 /**
