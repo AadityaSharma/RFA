@@ -14,6 +14,13 @@ export default function Forecast() {
   // lowercase keys, exactly matching your Mongo schema
   const MONTHS = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 
+
+ const CORE_FIELDS = [
+   'accountName','deliveryManager','projectName',
+   'BU','VDE','GDE','account','comments'
+ ]
+
+
   const [years, setYears] = useState([])
   const [projects, setProjects] = useState([])
   const [entries, setEntries] = useState([])
@@ -68,13 +75,38 @@ export default function Forecast() {
 
   // Save (upsert each row)
   const handleSave = async () => {
-    await Promise.all(
+    /* await Promise.all(
       draftEntries.map(e => {
         // strip any stray uppercase-month props before sending
         MONTHS.forEach(m => delete e[m.charAt(0).toUpperCase() + m.slice(1)])
         return upsertEntry({ ...e, type: 'forecast', year })
       })
+    ) */
+
+        // build a truly “clean” payload for each row
+    const payloads = draftEntries.map(row => {
+      const clean = { type: 'forecast', year }
+      // preserve existing _id so Mongoose can update
+      if (row._id) clean._id = row._id
+
+      // core scalar fields
+      CORE_FIELDS.forEach(f => {
+        clean[f] = row[f] !== undefined ? row[f] : ''
+      })
+
+      // months as numbers
+      MONTHS.forEach(m => {
+        clean[m] = parseFloat(row[m]) || 
+      })
+
+      return clean
+    })
+
+    // send each one as an array of length=1 (per our new api.js helper)
+    await Promise.all(
+      payloads.map(pl => upsertEntry(pl, 'forecast', year))
     )
+
     // reload after save
     fetchEntries({ type: 'forecast', year }).then(r => {
       const normalized = (r.data || []).map(raw => {
