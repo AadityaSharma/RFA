@@ -2,3 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 html, body, #root { height: 100%; }
+
+/* simple header background for all tables */
+thead tr { background: rgba(0,0,0,0.05); }

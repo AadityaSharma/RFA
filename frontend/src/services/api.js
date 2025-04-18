@@ -1,76 +1,124 @@
-import axios from 'axios';
-// const API = axios.create({ baseURL: 'http://localhost:5000/api' });
+// src/services/api.js
+import axios from 'axios'
 
+// ————————————————————————————————————————————
+// create one axios instance for all calls
+// ————————————————————————————————————————————
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
-  withCredentials: true
-});
+  withCredentials: true,
+})
 
-API.interceptors.request.use(req => {
-  const t = localStorage.getItem('token');
-  if (t) req.headers.Authorization = `Bearer ${t}`;
-  return req;
-});
-export const signup = data => API.post('/auth/signup', data);
-export const login = data => API.post('/auth/login', data);
-export const createProject = d => API.post('/projects', d);
-export const assignManagers = (id, m) => API.put(`/projects/${id}/assign`, { managerIds: m });
-export const setAOP = (id, d) => API.put(`/projects/${id}/aop`, d);
+// ————————————————————————————————————————————
+// attach bearer token if present
+// ————————————————————————————————————————————
+API.interceptors.request.use(cfg => {
+  const token = localStorage.getItem('token')
+  if (token) cfg.headers.Authorization = `Bearer ${token}`
+  return cfg
+})
+
+// ————————————————————————————————————————————
+// on 401, drop token + bounce to login
+// ————————————————————————————————————————————
+API.interceptors.response.use(
+  res => res,
+  err => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('token')
+      window.location.replace('/login')
+    }
+    return Promise.reject(err)
+  }
+)
+
+// ————————————————————————————————————————————
+// auth
+// ————————————————————————————————————————————
+export const signup = data => API.post('/auth/signup', data)
+export const login  = data => API.post('/auth/login',  data)
+
+// ————————————————————————————————————————————
+// project admin
+// ————————————————————————————————————————————
+export const createProject   = data => API.post('/projects', data)
+export const assignManagers  = (id, managerIds) =>
+  API.put(`/projects/${id}/assign`, { managerIds })
+export const setAOP           = (id, aopData) =>
+  API.put(`/projects/${id}/aop`, aopData)
+
+// ————————————————————————————————————————————
+// actuals import/export
+// ————————————————————————————————————————————
 export const importActuals = file => {
-  const fd = new FormData(); fd.append('file',file);
-  return API.post('/actuals/import', fd);
-};
-export const exportActuals = () => API.get('/actuals/export',{responseType:'blob'});
+  const fd = new FormData()
+  fd.append('file', file)
+  return API.post('/actuals/import', fd)
+}
+export const exportActuals = () =>
+  API.get('/actuals/export', { responseType: 'blob' })
+
+// ————————————————————————————————————————————
+// new‑FY CSV upload
+// ————————————————————————————————————————————
 export const newFY = file => {
-  const fd = new FormData(); fd.append('file',file);
-  return API.post('/admin/newfy', fd);
-};
-export const fetchDashboard = q => API.get('/dashboard/summary',{params:q});
+  const fd = new FormData()
+  fd.append('file', file)
+  return API.post('/admin/newfy', fd)
+}
 
+// ————————————————————————————————————————————
+// dashboard
+// ————————————————————————————————————————————
+export const fetchDashboard = params =>
+  API.get('/dashboard/summary', { params })
 
-
-/**
- * Fetch available years for a given entry type (forecast or opportunities)
- */
+// ————————————————————————————————————————————
+// forecast & opportunities entries
+// ————————————————————————————————————————————
 export function fetchYears(type) {
-  return API.get(`/entries/years?type=${type}`);
+  return API.get(`/entries/years?type=${type}`)
 }
 
-/**
- * Fetch all projects (used to populate dropdowns or new rows)
- */
 export function fetchProjects() {
-  return API.get('/projects');
+  return API.get('/projects')
 }
 
-/**
- * Fetch all entries for a given type and year
- */
 export function fetchEntries({ type, year }) {
-  return API.get(`/entries?type=${type}&year=${year}`);
+  return API.get(`/entries?type=${type}&year=${year}`)
 }
 
-/**
- * Export entries as CSV (returns blob)
- */
 export function exportEntries(type, year) {
-  return API.get(`/entries/export?type=${type}&year=${year}`, {
-    responseType: 'blob'
-  });
+  return API.get(
+    `/entries/export?type=${type}&year=${year}`,
+    { responseType: 'blob' }
+  )
 }
 
 /**
- * Upsert one or more entries in bulk
- * We expect payload.entries to be an array of entry objects
+ * Bulk‐upsert: send an array of entry objects
+ * payload: { entries, type, year }
  */
-export function upsertEntries({ type, year, entries }) {
-  return API.post(`/entries?type=${type}&year=${year}`, { entries });
+export function upsertEntries({ entries, type, year }) {
+  return API.post(`/entries?type=${type}&year=${year}`, { entries })
 }
 
-// For convenience, alias single-entry upsert
-export function upsertEntry(entry) {
-  const { type, year, ...rest } = entry;
-  return upsertEntries({ type, year, entries: [rest] });
+/**
+ * Convenience: upsert one or more entries
+ * entryOrArray: object or array
+ * type: 'forecast' or 'opportunity'
+ * year: number|string
+ */
+export function upsertEntry(entryOrArray, type, year) {
+  const entries = Array.isArray(entryOrArray)
+    ? entryOrArray
+    : [entryOrArray]
+
+  return API.post(
+    '/entries',
+    { entries },
+    { params: { type, year } }
+  )
 }
 
-export default API;
+export default API

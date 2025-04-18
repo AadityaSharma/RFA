@@ -1,342 +1,276 @@
-// frontend/src/pages/Opportunities.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react'
 import {
   fetchYears,
   fetchProjects,
   fetchEntries,
   upsertEntry,
   exportEntries
-} from '../services/api';
+} from '../services/api'
+import { XIcon } from '@heroicons/react/solid'
+import '../pages/Forecast.css'    // reuse the exact same table styles
 
-const MONTH_ORDER  = [4,5,6,7,8,9,10,11,12,1,2,3];
-const MONTH_LABELS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+const MONTH_KEYS  = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+const MONTH_LABEL = month => month.charAt(0).toUpperCase() + month.slice(1)
 
 export default function Opportunities() {
-  const [years, setYears]         = useState([]);
-  const [fy,    setFy]            = useState(null);
-  const [projects, setProjects]   = useState([]);
-  const [grid,  setGrid]          = useState([]);
-  const [editing, setEditing]     = useState(false);
+  const [years,        setYears]        = useState([])
+  const [fy,           setFy]           = useState(null)
+  const [projects,     setProjects]     = useState([])
+  const [entries,      setEntries]      = useState([])
+  const [draftEntries, setDraftEntries] = useState([])
+  const [isEditing,    setIsEditing]    = useState(false)
+  const wrapperRef = useRef()
 
-  useEffect(()=>{
-    fetchYears('opportunity').then(r=>{
-      setYears(r.data);
-      if(r.data.length) setFy(r.data[0]);
-    });
-    fetchProjects().then(r=>setProjects(r.data));
-  },[]);
+  //–– load years & projects
+  useEffect(() => {
+    fetchYears('opportunity').then(r => {
+      const ys = r.data.years || []
+      setYears(ys)
+      if (ys.length) setFy(ys[0])
+    })
+    fetchProjects().then(r => setProjects(r.data))
+  }, [])
 
-  useEffect(()=>{
-    if(fy && projects.length) loadEntries();
-  },[fy,projects]);
+  //–– when fy changes, reload & normalize keys
+  useEffect(() => {
+    if (!fy) return
+    fetchEntries({ type:'opportunity', year:fy }).then(r => {
+      const norm = (r.data||[]).map(raw => {
+        const e = { ...raw }
+        // migrate any Uppercase‐month to lowercase
+        MONTH_KEYS.forEach(k => {
+          const K = MONTH_LABEL(k)
+          if (raw[K] !== undefined) {
+            e[k] = raw[K]
+            delete e[K]
+          }
+        })
+        return e
+      })
+      setEntries(norm)
+      setDraftEntries(norm.map(e=>({ ...e })))
+      setIsEditing(false)
+    })
+  }, [fy])
 
-  async function loadEntries(){
-    const resp = await fetchEntries({ year: fy, type: 'opportunity' });
-    const map = {};
-    resp.data.forEach(e=>{
-      map[`${e.projectId}-${e.month}`] = e;
-    });
-    const rows = projects.map(p=>{
-      const cells = {};
-      MONTH_ORDER.forEach(m=>{
-        cells[m] = map[`${p._id}-${m}`] || {
-          projectId: p._id,
-          month: m,
-          valueMillion: 0,
-          probability: '',
-          status: 'In-progress',
-          comment: '',
-          updatedAt: null
-        };
-      });
-      return { project: p, cells };
-    });
-    setGrid(rows);
+  //–– export CSV
+  const handleExport = () => {
+    exportEntries('opportunity', fy).then(res => {
+      const blob = new Blob([res.data], { type:'text/csv' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `opportunities_${fy}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    })
   }
 
-  const saveCell = async (projectId, month, obj) => {
-    const fd = new FormData();
-    fd.append('projectId', projectId);
-    fd.append('year', fy);
-    fd.append('month', month);
-    fd.append('type', 'opportunity');
-    fd.append('valueMillion', obj.valueMillion);
-    fd.append('probability', obj.probability);
-    fd.append('status', obj.status);
-    fd.append('comment', obj.comment);
-    await upsertEntry(fd);
-    await loadEntries();
-  };
+  //–– save edits
+  const handleSave = async () => {
+    // send each row to backend
+    await Promise.all(
+      draftEntries.map(e =>
+        upsertEntry({ ...e, type:'opportunity', year:fy })
+      )
+    )
+    // reload
+    fetchEntries({ type:'opportunity', year:fy }).then(r => {
+      const norm = (r.data||[]).map(raw => {
+        const e = { ...raw }
+        MONTH_KEYS.forEach(k => {
+          const K = MONTH_LABEL(k)
+          if (raw[K] !== undefined) {
+            e[k] = raw[K]
+            delete e[K]
+          }
+        })
+        return e
+      })
+      setEntries(norm)
+      setDraftEntries(norm.map(e=>({ ...e })))
+      setIsEditing(false)
+    })
+  }
 
-  const exportCSV = year =>
-    exportEntries('opportunity', year).then(res=>{
-      const url = URL.createObjectURL(
-        new Blob([res.data],{type:'text/csv'})
-      );
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `opportunity_${year}.csv`;
-      a.click();
-    });
+  //–– cancel edits
+  const handleCancel = () => {
+    setDraftEntries(entries.map(e=>({ ...e })))
+    setIsEditing(false)
+  }
 
-  const today = new Date();
-  const isFrozen = m => {
-    const last = new Date(fy, m, 0).getDate();
-    return today.getDate() > last - 1;
-  };
+  //–– add a blank row
+  const handleAddRow = () => {
+    const blank = {
+      accountName: '',
+      deliveryManager: '',
+      projectName: '',
+      probability: '',   // A, B, C…
+      status: '',        // In‑progress / Won / Abandoned
+      comments: '',
+      __isNew: true
+    }
+    MONTH_KEYS.forEach(k => blank[k]=0)
+    setDraftEntries(draftEntries.concat(blank))
+    setIsEditing(true)
+    setTimeout(() => {
+      wrapperRef.current.scrollLeft = wrapperRef.current.scrollWidth
+    }, 100)
+  }
 
-  // footer sums
-  const footerSums = MONTH_ORDER.map(m =>
-    grid.reduce((sum,row)=>sum + Number(row.cells[m].valueMillion||0),0)
-      .toFixed(1)
-  );
-  const grandTotal = footerSums.reduce((s,x)=>s+Number(x),0).toFixed(1);
+  //–– delete just‐new rows
+  const handleDeleteRow = idx => {
+    setDraftEntries(draftEntries.filter((_,i)=>i!==idx))
+  }
+
+  //–– single cell change
+  const handleChange = (i, field, val) => {
+    const copy = [...draftEntries]
+    copy[i] = { ...copy[i], [field]: val }
+    setDraftEntries(copy)
+  }
+
+  //–– helper to sum up months
+  const sum = row =>
+    MONTH_KEYS.reduce((acc,k)=> acc + (parseFloat(row[k])||0), 0)
 
   return (
-    <div className="p-4">
-      {/* Top Bar */}
-      <div className="flex justify-between items-center mb-4">
+    <div className="p-6">
+      {/* controls */}
+      <div className="flex items-center mb-4 space-x-2">
         <select
+          className="border rounded px-2 py-1"
           value={fy||''}
-          onChange={e=>setFy(+e.target.value)}
-          className="p-2 border rounded"
+          onChange={e=>setFy(e.target.value)}
         >
           {years.map(y=>(
-            <option key={y} value={y}>
-              FY {y}–{y+1}
-            </option>
+            <option key={y} value={y}>FY {y}</option>
           ))}
         </select>
 
-        <div className="space-x-2">
-          <button
-            onClick={()=>exportCSV(fy)}
-            className="px-3 py-1 bg-blue-600 text-white rounded"
-          >
-            Export CSV
-          </button>
-          <button
-            onClick={()=>setEditing(!editing)}
-            className="px-3 py-1 bg-green-600 text-white rounded"
-          >
-            {editing?'Cancel':'Edit'}
-          </button>
-          {editing && (
+        <button
+          onClick={handleExport}
+          className="bg-green-600 text-white px-4 py-1 rounded"
+        >
+          Export CSV
+        </button>
+
+        {isEditing
+          ? (
+            <>
+              <button
+                onClick={handleSave}
+                className="bg-blue-600 text-white px-4 py-1 rounded"
+              >
+                Save
+              </button>
+              <button
+                onClick={handleCancel}
+                className="bg-red-600 text-white px-4 py-1 rounded"
+              >
+                Cancel
+              </button>
+            </>
+          )
+          : (
             <button
-              onClick={()=>{
-                setGrid(g=>[
-                  ...g,
-                  {
-                    project:{_id:'new',account:'',managerName:'',name:'',bu:'',vde:'',gde:''},
-                    cells: MONTH_ORDER.reduce((o,m)=>{
-                      o[m]={projectId:'new',month:m,valueMillion:0,probability:'',status:'In-progress',comment:'',updatedAt:null};
-                      return o;
-                    },{})
-                  }
-                ]);
-              }}
-              className="px-3 py-1 bg-gray-600 text-white rounded"
+              onClick={()=>setIsEditing(true)}
+              className="bg-blue-600 text-white px-4 py-1 rounded"
             >
-              ＋ Add Project
+              Edit
             </button>
-          )}
-        </div>
+          )
+        }
+
+        <button
+          onClick={handleAddRow}
+          className="ml-auto bg-indigo-600 text-white px-4 py-1 rounded"
+        >
+          + Add Opportunity
+        </button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border">
-          <thead className="bg-gray-100">
+      {/* table */}
+      <div
+        ref={wrapperRef}
+        className="overflow-x-auto border rounded table-wrapper"
+        style={{ maxHeight:'65vh' }}
+      >
+        <table className="forecast-table w-max border-collapse min-w-full">
+          <thead>
             <tr>
-              <th className="p-2 border">Account Name</th>
-              <th className="p-2 border">Delivery Manager</th>
-              <th className="p-2 border">Project Name</th>
-              <th className="p-2 border">BU</th>
-              <th className="p-2 border">VDE</th>
-              <th className="p-2 border">GDE</th>
-              <th className="p-2 border">Account</th>
-              {MONTH_LABELS.map(l=>(
-                <th key={l} className="p-2 border">{l}</th>
+              <th className="sticky-col">Account Name</th>
+              <th>Delivery Manager</th>
+              <th>Project Name</th>
+              <th>Probability</th>
+              <th>Status</th>
+              {MONTH_KEYS.map(m=>(
+                <th key={m} className="month-col">
+                  {MONTH_LABEL(m)}
+                </th>
               ))}
-              <th className="p-2 border">Total</th>
-              <th className="p-2 border">Probability</th>
-              <th className="p-2 border">Status</th>
-              <th className="p-2 border">Comments</th>
+              <th className="total-col">Total</th>
+              <th className="comments-col">Comments</th>
             </tr>
           </thead>
+
           <tbody>
-            {grid.map(({project,cells},ri)=> {
-              const ages = MONTH_ORDER.map(m=>
-                cells[m].updatedAt
-                  ? (Date.now()-new Date(cells[m].updatedAt))/86400000
-                  : 0
-              );
-              const maxAge = Math.max(...ages);
-              const rowClass = maxAge>14?'bg-red-100':maxAge>7?'bg-yellow-100':'';
+            {draftEntries.map((row,i)=>(
+              <tr key={i} className={row.__isNew?'new-row':''}>
+                {/* first 5 fields */}
+                {['accountName','deliveryManager','projectName','probability','status']
+                  .map((fld,j)=>(
+                    <td key={j}
+                        className={j===0?'sticky-col p-1':'p-1'}>
+                      <input
+                        disabled={!isEditing}
+                        value={row[fld]||''}
+                        onChange={e=>handleChange(i,fld,e.target.value)}
+                        className="cell-input"
+                      />
+                    </td>
+                  ))
+                }
 
-              const rowTotal = MONTH_ORDER
-                .reduce((s,m)=>s + Number(cells[m].valueMillion||0),0)
-                .toFixed(1);
+                {/* month columns */}
+                {MONTH_KEYS.map(mon=>(
+                  <td key={mon} className="month-col p-1 text-right">
+                    <input
+                      type="number"
+                      step="0.01"
+                      disabled={!isEditing}
+                      value={row[mon]}
+                      onChange={e=>handleChange(i,mon,e.target.value)}
+                      className="cell-input text-right"
+                    />
+                  </td>
+                ))}
 
-              return (
-                <tr key={ri} className={rowClass}>
-                  <td className="p-2 border">
-                    <input
-                      type="text"
-                      defaultValue={project.account}
-                      disabled={!editing}
-                      onBlur={e=>project.account=e.target.value}
-                      className="w-full p-1 border rounded"
-                    />
-                  </td>
-                  <td className="p-2 border">
-                    <input
-                      type="text"
-                      defaultValue={project.managerName}
-                      disabled={!editing}
-                      onBlur={e=>project.managerName=e.target.value}
-                      className="w-full p-1 border rounded"
-                    />
-                  </td>
-                  <td className="p-2 border">
-                    <input
-                      type="text"
-                      defaultValue={project.name}
-                      disabled={!editing}
-                      onBlur={e=>project.name=e.target.value}
-                      className="w-full p-1 border rounded"
-                    />
-                  </td>
-                  <td className="p-2 border">
-                    <input
-                      type="text"
-                      defaultValue={project.bu}
-                      disabled={!editing}
-                      onBlur={e=>project.bu=e.target.value}
-                      className="w-full p-1 border rounded"
-                    />
-                  </td>
-                  <td className="p-2 border">
-                    <input
-                      type="text"
-                      defaultValue={project.vde}
-                      disabled={!editing}
-                      onBlur={e=>project.vde=e.target.value}
-                      className="w-full p-1 border rounded"
-                    />
-                  </td>
-                  <td className="p-2 border">
-                    <input
-                      type="text"
-                      defaultValue={project.gde}
-                      disabled={!editing}
-                      onBlur={e=>project.gde=e.target.value}
-                      className="w-full p-1 border rounded"
-                    />
-                  </td>
-                  <td className="p-2 border">
-                    <input
-                      type="text"
-                      defaultValue={project.account}
-                      disabled={!editing}
-                      onBlur={e=>project.account=e.target.value}
-                      className="w-full p-1 border rounded"
-                    />
-                  </td>
+                {/* total */}
+                <td className="total-col p-1 text-right font-semibold">
+                  ${sum(row).toFixed(2)}
+                </td>
 
-                  {MONTH_ORDER.map(m=>{
-                    const cell = cells[m];
-                    return (
-                      <td key={m} className="p-1 border text-center">
-                        <input
-                          type="number"
-                          step="0.1"
-                          defaultValue={cell.valueMillion}
-                          disabled={!editing || isFrozen(m)}
-                          onBlur={e=>
-                            saveCell(project._id, m, {
-                              ...cell,
-                              valueMillion: e.target.value
-                            })
-                          }
-                          className="w-16 p-1 border rounded"
-                        />
-                      </td>
-                    );
-                  })}
-
-                  <td className="p-2 border font-bold">{rowTotal}</td>
-
-                  <td className="p-2 border">
-                    <select
-                      defaultValue={cells[4].probability}
-                      disabled={!editing}
-                      onChange={e=>
-                        saveCell(project._id,4,{...cells[4],probability:e.target.value})
-                      }
-                      className="p-1 border rounded"
-                    >
-                      <option value="">—</option>
-                      {['A','B','C','D','E'].map(x=>(
-                        <option key={x} value={x}>{x}</option>
-                      ))}
-                    </select>
-                  </td>
-
-                  <td className="p-2 border">
-                    <select
-                      defaultValue={cells[4].status}
-                      disabled={!editing}
-                      onChange={e=>
-                        saveCell(project._id,4,{...cells[4],status:e.target.value})
-                      }
-                      className="p-1 border rounded"
-                    >
-                      {['In-progress','Won','Abandoned'].map(s=>(
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </td>
-
-                  <td className="p-2 border relative">
-                    <input
-                      type="text"
-                      defaultValue={cells[4].comment}
-                      disabled={!editing}
-                      onBlur={e=>
-                        saveCell(project._id,4,{...cells[4],comment:e.target.value})
-                      }
-                      className="w-full p-1 border rounded"
+                {/* comments + delete‑icon for new rows */}
+                <td className="comments-col p-1 flex items-center space-x-1">
+                  <input
+                    disabled={!isEditing}
+                    value={row.comments||''}
+                    onChange={e=>handleChange(i,'comments',e.target.value)}
+                    className="cell-input flex-grow"
+                  />
+                  {row.__isNew && isEditing && (
+                    <XIcon
+                      onClick={()=>handleDeleteRow(i)}
+                      className="h-4 w-4 text-red-600 cursor-pointer"
                     />
-                    <span
-                      title={
-                        cells[4].updatedAt
-                          ? new Date(cells[4].updatedAt).toLocaleDateString('en-US',{
-                              day:'2-digit',month:'short',year:'numeric'
-                            })
-                          : ''
-                      }
-                      className="absolute top-1 right-1 text-gray-400 cursor-help"
-                    >
-                      🕒
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
+                  )}
+                </td>
+              </tr>
+            ))}
           </tbody>
-          <tfoot className="bg-gray-200 font-bold">
-            <tr>
-              <td colSpan={7} className="p-2 border">Total</td>
-              {footerSums.map((s,i)=>(
-                <td key={i} className="p-2 border">{s}</td>
-              ))}
-              <td className="p-2 border">{grandTotal}</td>
-              <td colSpan={3} className="p-2 border"></td>
-            </tr>
-          </tfoot>
         </table>
       </div>
     </div>
-  );
+  )
 }
