@@ -12,7 +12,7 @@ export default function Navbar() {
       <NavLink to="/new-fy">New FY (Admin)</NavLink>
       <NavLink to="/actuals">Upload Monthly Actuals (Admin)</NavLink>
       <div className="ml-auto">
-        <button onClick={()=>{/* logout logic */}}>Logout</button>
+        <NavLink to="/logout">Logout</NavLink>
       </div>
     </nav>
   );
