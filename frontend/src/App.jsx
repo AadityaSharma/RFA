@@ -21,7 +21,7 @@ export default function App() {
         {/* Public routes */}
         <Route path="/login"  element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-+       <Route path="/logout" element={<Logout />} />
+        <Route path="/logout" element={<Logout />} />
 
         {/* All others require auth */}
         <Route
