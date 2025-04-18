@@ -8,7 +8,7 @@ export default function Navbar() {
       
       <NavLink to="/forecast">Forecast</NavLink>
       <NavLink to="/opportunities">Opportunities</NavLink>
-      <NavLink to="/dashboard">Insights</NavLink>
+      <NavLink to="/insights">Insights</NavLink>
       <NavLink to="/new-fy">New FY (Admin)</NavLink>
       <NavLink to="/actuals">Upload Monthly Actuals (Admin)</NavLink>
       <div className="ml-auto">
