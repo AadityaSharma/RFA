@@ -60,35 +60,27 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   const data = req.body;
-
-  // pull out _id if it exists
+  // strip out any incoming _id so we don't accidentally try to set it
   const { _id, ...rest } = data;
 
-  // build our upsert filter:
-  // if client gave us an _id, use it; otherwise use your natural composite key
+  // if they passed an _id, filter on that; otherwise use your composite key
   const filter = _id
     ? { _id }
     : {
         type: rest.type,
         year: rest.year,
         accountName: rest.accountName,
-        projectName: rest.projectName
+        projectName: rest.projectName,
       };
-
-  // build the update doc, explicitly omitting _id
-  const updateDoc = {
-    $set: rest,
-    // you can also $setOnInsert defaults here
-  };
 
   try {
     const entry = await Entry.findOneAndUpdate(
       filter,
-      updateDoc,
+      { $set: rest },
       {
-        upsert: true,
         new: true,
-        setDefaultsOnInsert: true
+        upsert: true,
+        setDefaultsOnInsert: true,
       }
     );
     return res.json(entry);
