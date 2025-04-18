@@ -10,8 +10,8 @@ import Actuals      from './pages/Actuals'
 import Insights     from './pages/Insights'
 import Login        from './pages/Login'
 import Signup       from './pages/Signup'
-+ import Logout       from './pages/Logout'
-+ import ProtectedRoute from './components/ProtectedRoute'
+import Logout       from './pages/Logout'
+import ProtectedRoute from './components/ProtectedRoute'
 
 export default function App() {
   return (
