@@ -90,15 +90,28 @@ export default function Forecast() {
   }
 
   // Save
+  @@ exportEntries(type, year)…  
+
+
+  // Save
   const handleSave = async () => {
-    await upsertEntries({
-       type: 'forecast',
-       year: year,
-       entries: draftEntries
+    // strip out any client‐only fields before sending
+    const clean = draftEntries.map(e => {
+      const { _id, createdAt, updatedAt, __isNew, ...rest } = e;
+      return rest;
     });
-    setIsEditing(false)
-    // reload
-    setYear(year)  // triggers useEffect above
+
+    await upsertEntries({
+      type:    'forecast',
+      year,
+      entries: clean
+    });
+
+    setIsEditing(false);
+    // reload from server
+    fetchEntries({ type:'forecast', year }).then(r => {
+      // … your existing normalize + setEntries logic …
+    });
   }
 
   // Cancel
