@@ -131,3 +131,16 @@
   display:inline-flex;
   align-items:center;
 }
+
+/* wrap table in a shadowed scroll container */
+.table-wrapper {
+  border-radius: var(--ntt-radius);
+  box-shadow: var(--ntt-shadow);
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+/* lightly tint every header row */
+.forecast-table thead tr {
+  background: var(--ntt-header-bg);
+}
