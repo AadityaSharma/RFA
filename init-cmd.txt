@@ -1,1 +1,3 @@
-// 
+in both frontend and backend folders run
+npm install
+npm run dev
