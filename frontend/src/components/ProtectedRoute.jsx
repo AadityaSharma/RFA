@@ -1,18 +1,10 @@
-// frontend/src/components/ProtectedRoute.jsx
+// src/components/ProtectedRoute.jsx
 import React from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
 
-/**
- * Wrap any page that requires authentication.
- * If no JWT token in localStorage, redirect to /login.
- */
-export default function ProtectedRoute({ children }) {
+export default function ProtectedRoute() {
   const token = localStorage.getItem('token')
-  const location = useLocation()
-
-  if (!token) {
-    // remember where the user wanted to go, so you can redirect after login if desired
-    return <Navigate to="/login" state={{ from: location }} replace />
-  }
-  return children
+  return token
+    ? <Outlet/>
+    : <Navigate to="/login" replace/>
 }
