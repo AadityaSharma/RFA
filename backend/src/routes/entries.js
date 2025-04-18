@@ -98,8 +98,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-export default router;
-
 // 4) GET export CSV
 router.get('/export', async (req, res) => {
   const { type, year } = req.query;
