@@ -6,6 +6,7 @@ import Navbar        from './components/Navbar';
 import Dashboard     from './pages/Dashboard';
 import Forecast      from './pages/Forecast';
 import Opportunities from './pages/Opportunities';
+import Insights       from './pages/Insights';
 import NewFY         from './pages/NewFY';
 import Login         from './pages/Login';
 import Signup        from './pages/Signup';
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/forecast" element={<Forecast />} />
         <Route path="/opportunities" element={<Opportunities />} />
+        <Route path="/insights" element={<Insights />} />
         <Route path="/new-fy" element={<NewFY />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
