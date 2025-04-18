@@ -13,7 +13,7 @@ return ( <nav className="bg-white shadow"> <div className="max-w-7xl mx-auto px-
 
 {/* Left: Logo & Brand */}
       <div className="flex items-center space-x-3">
-        // <img src={Logo} alt="NTT Data Logo" className="h-8 w-auto" />
+        /* <img src={Logo} alt="NTT Data Logo" className="h-8 w-auto" /> */
         <span className="text-xl font-bold text-gray-800">NTT Data</span>
       </div>
 
