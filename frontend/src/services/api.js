@@ -33,28 +33,28 @@ export const fetchDashboard = q => API.get('/dashboard/summary',{params:q});
  * Fetch available years for a given entry type (forecast or opportunities)
  */
 export function fetchYears(type) {
-  return axios.get(`/entries/years?type=${type}`);
+  return API.get(`/entries/years?type=${type}`);
 }
 
 /**
  * Fetch all projects (used to populate dropdowns or new rows)
  */
 export function fetchProjects() {
-  return axios.get('/projects');
+  return API.get('/projects');
 }
 
 /**
  * Fetch all entries for a given type and year
  */
 export function fetchEntries({ type, year }) {
-  return axios.get(`/entries?type=${type}&year=${year}`);
+  return API.get(`/entries?type=${type}&year=${year}`);
 }
 
 /**
  * Export entries as CSV (returns blob)
  */
 export function exportEntries(type, year) {
-  return axios.get(`/entries/export?type=${type}&year=${year}`, {
+  return API.get(`/entries/export?type=${type}&year=${year}`, {
     responseType: 'blob'
   });
 }
@@ -64,7 +64,7 @@ export function exportEntries(type, year) {
  * We expect payload.entries to be an array of entry objects
  */
 export function upsertEntries({ type, year, entries }) {
-  return axios.post(`/entries?type=${type}&year=${year}`, { entries });
+  return API.post(`/entries?type=${type}&year=${year}`, { entries });
 }
 
 // For convenience, alias single-entry upsert
