@@ -8,6 +8,7 @@ const {
   getYears,
   exportCSV
 } = require('../controllers/entryController');
+import Entry from '../models/Entry.js'; // adjust import to your schema location
 
 const router = express.Router();
 
@@ -54,21 +55,50 @@ router.get('/', async (req, res) => {
 });
 
 // 3) POST save bulk entries
+/**
+ * upsert an entry (forecast or opportunity or actual)
+ */
 router.post('/', async (req, res) => {
-  const { type, year, entries } = req.body;
+  const data = req.body;
+
+  // pull out _id if it exists
+  const { _id, ...rest } = data;
+
+  // build our upsert filter:
+  // if client gave us an _id, use it; otherwise use your natural composite key
+  const filter = _id
+    ? { _id }
+    : {
+        type: rest.type,
+        year: rest.year,
+        accountName: rest.accountName,
+        projectName: rest.projectName
+      };
+
+  // build the update doc, explicitly omitting _id
+  const updateDoc = {
+    $set: rest,
+    // you can also $setOnInsert defaults here
+  };
+
   try {
-    for (const row of entries) {
-      await Entry.findOneAndUpdate(
-        { type, year, accountName: row.accountName, projectName: row.projectName },
-        { ...row, type, year },
-        { upsert: true }
-      );
-    }
-    res.json({ ok: true });
+    const entry = await Entry.findOneAndUpdate(
+      filter,
+      updateDoc,
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true
+      }
+    );
+    return res.json(entry);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('upsert entry error:', err);
+    return res.status(500).json({ error: err.message });
   }
 });
+
+export default router;
 
 // 4) GET export CSV
 router.get('/export', async (req, res) => {
