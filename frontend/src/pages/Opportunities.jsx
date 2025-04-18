@@ -22,7 +22,7 @@ export default function Opportunities() {
   const [draftEntries, setDraftEntries] = useState([])
   const [isEditing,    setIsEditing]    = useState(false)
   const [filterProb,   setFilterProb]   = useState('')
-  const [filterStatus, setFilterStatus] = useState('In-Progress')
+  const [filterStatus, setFilterStatus] = useState('')
   const wrapperRef = useRef()
 
   // load years & projects
@@ -130,10 +130,11 @@ export default function Opportunities() {
   const sum = row =>
     MONTH_KEYS.reduce((acc,k)=>acc + (parseFloat(row[k])||0), 0)
 
-  // apply filters
+  // apply filters, but always show unsaved rows
   const visible = draftEntries.filter(row => {
-    if (filterProb && row.probability !== filterProb) return false
-    if (filterStatus && row.status !== filterStatus) return false
+    if (row.__isNew) return true
+    if (filterProb   && row.probability !== filterProb) return false
+    if (filterStatus && row.status      !== filterStatus) return false
     return true
   })
 
@@ -141,28 +142,35 @@ export default function Opportunities() {
     <div className="p-6">
       {/* controls */}
       <div className="flex flex-wrap items-center mb-4 space-x-2">
+        {/* FY selector */}
         <select
           className="border rounded px-2 py-1"
           value={fy||''}
           onChange={e=>setFy(e.target.value)}
+          disabled={isEditing}
         >
           {years.map(y=> <option key={y} value={y}>FY {y}</option>)}
         </select>
 
+        {/* Probability filter */}
         <select
           className="border rounded px-2 py-1"
           value={filterProb}
           onChange={e=>setFilterProb(e.target.value)}
+          disabled={isEditing}
         >
           <option value="">All Probabilities</option>
           {PROBS.map(p=> <option key={p} value={p}>{p}</option>)}
         </select>
 
+        {/* Status filter */}
         <select
           className="border rounded px-2 py-1"
           value={filterStatus}
           onChange={e=>setFilterStatus(e.target.value)}
+          disabled={isEditing}
         >
+          <option value="">All Statuses</option>
           {STATUSES.map(s=> <option key={s} value={s}>{s}</option>)}
         </select>
 
