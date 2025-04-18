@@ -96,7 +96,7 @@ export default function Forecast() {
         upsertEntry({ ...e, type:'forecast', year })
       )
     ) */
-    await upsertEntries(draft entries, 'forecast', year);
+    await upsertEntries(draftEntries, 'forecast', year);
     setIsEditing(false)
     // reload
     setYear(year)  // triggers useEffect above
