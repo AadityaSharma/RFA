@@ -5,7 +5,7 @@ const entrySchema = new mongoose.Schema({
   // core identity
   type: {
     type: String,
-    enum: ['forecast','opportunities'],
+    enum: ['forecast','opportunity'],
     required: true
   },
   year: {
