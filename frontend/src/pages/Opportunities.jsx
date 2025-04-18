@@ -71,11 +71,11 @@ export default function Opportunities() {
 
   // save
   const handleSave = async () => {
-    await Promise.all(
-      draftEntries.map(e =>
-        upsertEntry({ ...e, type:'opportunity', year:fy })
-      )
-    )
+    await upsertEntries({
+       type: 'opportunity',
+       year: fy,
+       entries: draftEntries
+    });
     // reload
     fetchEntries({ type:'opportunity', year:fy }).then(r => {
       const norm = (r.data||[]).map(raw => {
