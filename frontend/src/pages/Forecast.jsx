@@ -90,10 +90,6 @@ export default function Forecast() {
   }
 
   // Save
-  @@ exportEntries(type, year)…  
-
-
-  // Save
   const handleSave = async () => {
     // strip out any client‐only fields before sending
     const clean = draftEntries.map(e => {
