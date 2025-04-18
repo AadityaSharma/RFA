@@ -2,35 +2,49 @@
 
 /* 1) Root variables for easy theming */
 :root {
-  --ntt-border: #e1e2e6;
-  --ntt-header-bg: #f6f8fa;
-  --ntt-row-alt-bg: #fafbfc;
-  --ntt-hover-bg: rgba(0, 0, 0, 0.03);
-  --ntt-font: 'Inter', sans-serif;
-  --ntt-radius: 8px;
-  --ntt-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --ntt-border:      #e1e2e6;
+  --ntt-header-bg:   #f6f8fa;
+  --ntt-row-alt-bg:  #fafbfc;
+  --ntt-hover-bg:    rgba(0,0,0,0.03);
+  --ntt-font:        'Inter', sans-serif;
+  --ntt-radius:      8px;
+  --ntt-shadow:      0 2px 8px rgba(0,0,0,0.08);
 }
 
-/* 2) Wrapper: rounded + shadow + hidden overflow */
+/* 2) Wrapper: scrollable + rounded + shadow */
 .table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;      /* if you want vertical scroll too */
   border-radius: var(--ntt-radius);
   box-shadow: var(--ntt-shadow);
-  overflow: hidden;
+  background: white;      /* to mask out-of-bounds cells */
   margin-top: 1rem;
+}
+
+/* optional: prettier scrollbars */
+.table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 3px;
 }
 
 /* 3) Table basics */
 .forecast-table {
-  border-collapse: separate;         /* to allow border-radius */
+  border-collapse: separate; /* allow border-radius */
   border-spacing: 0;
   font-family: var(--ntt-font);
-  width: max-content;                /* width based on content */
-  min-width: 100%;                   /* at least fill wrapper */
+  width: max-content;        /* full content width */
+  min-width: 100%;           /* fill wrapper at least */
 }
 
-/* 4) Header row styling */
+/* 4) Sticky header row */
 .forecast-table thead th {
+  position: sticky;
+  top: 0;
   background: var(--ntt-header-bg);
+  z-index: 30;
   color: #333;
   font-weight: 500;
   font-size: 0.875rem;
@@ -39,16 +53,15 @@
   text-align: left;
 }
 
-/* make first TH sticky */
+/* 5) Header: make only the first column sticky left */
 .forecast-table thead th.sticky-col,
 .forecast-table thead th:first-child {
-  position: sticky;
   left: 0;
-  z-index: 20;
   box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+  z-index: 31;  /* above other header cells */
 }
 
-/* 5) Body rows: alternating + hover */
+/* 6) Body rows: alternating + hover */
 .forecast-table tbody tr:nth-child(even) {
   background: var(--ntt-row-alt-bg);
 }
@@ -56,7 +69,7 @@
   background: var(--ntt-hover-bg);
 }
 
-/* 6) Body cells */
+/* 7) Body cells */
 .forecast-table tbody td {
   padding: 10px 8px;
   border-bottom: 1px solid var(--ntt-border);
@@ -64,16 +77,16 @@
   vertical-align: middle;
 }
 
-/* sticky first column in body */
+/* 8) Sticky first column in body */
 .forecast-table tbody td.sticky-col {
   position: sticky;
   left: 0;
   background: white;
-  z-index: 10;
+  z-index: 20;
   box-shadow: 2px 0 4px rgba(0,0,0,0.03);
 }
 
-/* 7) Inputs styling: transparent background, no inner borders */
+/* 9) Inputs: transparent, edge‑to‑edge */
 .cell-input {
   width: 100%;
   font: inherit;
@@ -87,12 +100,12 @@
   color: #555;
 }
 
-/* 8) Column width hints */
+/* 10) Column width hints */
 .month-col {
   min-width: 60px;
   max-width: 100px;
   background: #ffedbd;
-  text-align: left;
+  text-align: right;
 }
 .total-col {
   min-width: 100px;
@@ -104,7 +117,7 @@
   min-width: 180px;
 }
 
-/* 9) New‐row highlight */
+/* 11) New‐row highlight */
 .new-row {
   background: #fff8e1 !important;
 }
