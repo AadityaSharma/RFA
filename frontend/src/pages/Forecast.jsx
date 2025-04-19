@@ -54,14 +54,6 @@ export default function Forecast() {
       const now = Date.now()
       const data = (r.data || []).map(raw => {
         const e = { ...raw }
-        // normalize month keys
-        MONTH_KEYS.forEach(k => {
-          const C = k.charAt(0).toUpperCase() + k.slice(1)
-          if (raw[C] !== undefined) {
-            e[k] = raw[C]
-            delete e[C]
-          }
-        })
         // parse updatedAt to Date
         e._updatedAt = e.updatedAt ? new Date(e.updatedAt) : null
 
