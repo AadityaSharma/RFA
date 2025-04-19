@@ -1,68 +1,95 @@
-
-/* root vars */
+/*-----------------------------*
+ |    ROOT VARIABLES          |
+ *-----------------------------*/
 :root {
   --ntt-border:     #e1e2e6;
   --ntt-header-bg:  #f0f4f8;
   --ntt-row-alt-bg: #fafbfc;
   --ntt-hover-bg:   rgba(0,0,0,0.03);
-  --ntt-font:       sans-serif;
+  --ntt-font:       'Inter', sans-serif;
   --ntt-radius:     6px;
   --ntt-shadow:     0 2px 8px rgba(0,0,0,0.08);
   --amber:          #fff4e5;
   --redish:         #ffe5e5;
 }
 
-/* Buttons */
-.btn-export  { background:#059669; color:#fff; }
-.btn-save    { background:#2563eb; color:#fff; }
-.btn-cancel  { background:#dc2626; color:#fff; }
-.btn-edit    { background:#2563eb; color:#fff; }
-.btn-add     { background:#4f46e5; color:#fff; }
+/*-----------------------------*
+ |    BUTTON STYLES           |
+ *-----------------------------*/
+.btn-export { background:#059669; color:#fff; }
+.btn-save   { background:#2563eb; color:#fff; }
+.btn-cancel { background:#dc2626; color:#fff; }
+.btn-edit   { background:#2563eb; color:#fff; }
+.btn-add    { background:#4f46e5; color:#fff; }
 .btn-export, .btn-save,
 .btn-cancel, .btn-edit,
 .btn-add {
   padding:6px 12px;
-  border:none; border-radius:4px;
-  margin-right:6px;
+  border:none;
+  border-radius:4px;
   cursor:pointer;
   font-size:0.775rem;
+  margin-right:6px;
 }
 
-/* wrapper */
+/*-----------------------------*
+ |    TABLE WRAPPER           |
+ *-----------------------------*/
 .table-wrapper {
-  overflow-x:auto; overflow-y:auto;
   border:1px solid var(--ntt-border);
   border-radius:var(--ntt-radius);
   box-shadow:var(--ntt-shadow);
+  overflow-x:auto;
+  overflow-y:auto;
+  margin-top:1rem;
+  max-height:60vh; /* adjust as needed */
 }
 
-/* table */
+/*-----------------------------*
+ |    BASE TABLE STYLES       |
+ *-----------------------------*/
 .forecast-table {
   border-collapse: separate;
   border-spacing:0;
   font-family:var(--ntt-font);
-  width:max-content; min-width:100%;
+  min-width:100%;
+  width: max-content;
 }
 
-/* header */
+/*-----------------------------*
+ |    HEADER ROW              |
+ *-----------------------------*/
 .forecast-table thead th {
   background:var(--ntt-header-bg);
   padding:10px 8px;
   border-bottom:1px solid var(--ntt-border);
-  font-weight:600; font-size:0.875rem;
+  font-weight:600;
+  font-size:0.875rem;
   text-align:left;
   white-space:nowrap;
 }
 
-/* sticky first & timestamp */
-.sticky-col {
-  position:sticky; left:0;
+/* make headers sticky */
+.sticky-header {
+  position:sticky;
+  top:0;
+  z-index:30;
+}
+
+/*-----------------------------*
+ |    FIRST COLUMN STICKY     |
+ *-----------------------------*/
+.sticky-first {
+  position:sticky;
+  left:0;
   background:var(--ntt-header-bg);
-  z-index:20;
+  z-index:25;
   box-shadow:2px 0 4px rgba(0,0,0,0.05);
 }
 
-/* body rows */
+/*-----------------------------*
+ |    BODY ROWS               |
+ *-----------------------------*/
 .forecast-table tbody tr:nth-child(even) {
   background:var(--ntt-row-alt-bg);
 }
@@ -70,51 +97,69 @@
   background:var(--ntt-hover-bg);
 }
 
-/* age coloring */
-.age-warning  { background:var(--amber)  !important; }
-.age-danger   { background:var(--redish) !important; }
+/*-----------------------------*
+ |    AGE HIGHLIGHTS          |
+ *-----------------------------*/
+.age-warning { background:var(--amber)  !important; }
+.age-danger  { background:var(--redish) !important; }
 
-/* cells */
+/*-----------------------------*
+ |    CELL STYLES             |
+ *-----------------------------*/
 .forecast-table td {
-  padding:6px 8px;
-  border-bottom:1px solid var(--ntt-border);
   vertical-align:middle;
+  border-bottom:1px solid var(--ntt-border);
+  font-size:0.875rem;
+  padding:8px; /* a bit more for wrap */
   white-space:nowrap;
-  max-width: 140px;
-  font-size: 11px;
+  max-width:140px;
+  overflow:visible;
 }
 
-/* inputs */
+/* allow wrapping when needed */
+.cell-input.wrap,
+.forecast-table td.wrap {
+  white-space:normal;
+  word-break:break-word;
+  line-height:1.2;
+}
+
+/* input fields */
 .cell-input {
-  width:100%; border:none;
+  width:100%;
+  border:none;
   background:transparent;
-  font:inherit; padding:2px 4px;
+  font:inherit;
+  padding:2px 4px;
 }
 .cell-input:disabled {
   color:#444;
 }
 
+/*-----------------------------*
+ |    SPECIAL COLUMNS         |
+ *-----------------------------*/
 /* month columns */
 .month-col {
-  min-width:50px; 
-  max-width:60px ! important;
   background:#ffedbd;
   text-align:right;
+  min-width:50px;
+  max-width:60px !important;
 }
 
-/* total */
+/* total column */
 .total-col {
   background:#ebf8ff;
-  min-width:80px;
   text-align:right;
+  min-width:80px;
 }
 
-/* comments */
+/* comments column */
 .comments-col {
   min-width:180px;
 }
 
-/* timestamp */
+/* timestamp column */
 .timestamp-col {
   min-width:100px;
   font-size:0.75rem;
@@ -123,65 +168,38 @@
 }
 
 /* variance arrows */
-.var-up { color:#059669; font-size:0.65rem; margin-left:4px; }
+.var-up   { color:#059669; font-size:0.65rem; margin-left:4px; }
 .var-down { color:#dc2626; font-size:0.65rem; margin-left:4px; }
 
-/* new row highlight */
-.new-row { background:#fff8e1 !important; }
-
-/* wrapper inside cell for arrow layering */
-.cell-wrapper {
-  display:inline-flex;
-  align-items:center;
-}
-
-/* wrap table in a shadowed scroll container */
-.table-wrapper {
-  border-radius: var(--ntt-radius);
-  box-shadow: var(--ntt-shadow);
-  /*overflow: hidden;*/
-  margin-top: 1rem;
-}
-
-/* lightly tint every header row */
-.forecast-table thead tr {
-  background: var(--ntt-header-bg);
-}
-
-.abandoned-row {
-  opacity: 0.6;
-  background-color: #f5f5f5 !important;
-}
-.won-row {
-  background-color: #e6ffed !important;
-}
-
-/* ensure wrapping instead of clipping */
-.cell-input.wrap {
-  white-space: normal;
-  word-break: break-word;
-  line-height: 1.3;
-}
-
-/* bottom totals styling */
+/*-----------------------------*
+ |    BOTTOM TOTAL ROW        |
+ *-----------------------------*/
 .bottom-row {
-  background: var(--ntt-header-bg);
+  font-weight:600;
 }
 .bottom-row td {
-  border-top: 2px solid var(--ntt-border);
+  border-top:2px solid var(--ntt-border);
+}
+/* only month totals get same bg as total-col */
+.bottom-row .month-col {
+  background:#ebf8ff;
+}
+.bottom-row td.sticky-first,
+.bottom-row td.comments-col,
+.bottom-row td.timestamp-col,
+.bottom-row td.sticky-header,
+.bottom-row td:last-child {
+  background:var(--ntt-header-bg);
+}
+/* make totals footer sticky */
+.bottom-row td {
+  position:sticky;
+  bottom:0;
+  z-index:20;
 }
 
-/* collapse/expand button tweaks */
-.flex .h-5 {
-  opacity: 0.7;
-}
-.flex:hover .h-5 {
-  opacity: 1;
-}
-
-/* bump row height when wrapping */
-.forecast-table td {
-  padding: 8px;
-}
-
-/* (rest of your existing Forecast.css remains unchanged) */
+/*-----------------------------*
+ |    AVOID DUPLICATES         |
+ *-----------------------------*/
+/* tag any new‐row background */
+.new-row { background:#fff8e1 !important; }
