@@ -41,7 +41,7 @@ export default function Forecast() {
 
   const allKeys = STATIC_COLS.map(c=>c.key)
 
-  // When entering edit mode: expand all & select all columns
+  // Whenever we enter edit mode, auto‑expand and select all columns
   useEffect(() => {
     if (isEditing) {
       setCollapsed(false)
@@ -49,7 +49,7 @@ export default function Forecast() {
     }
   }, [isEditing])
 
-  // Load years
+  // Load years at mount
   useEffect(() => {
     fetchYears('forecast').then(r => {
       const ys = r.data.years || []
@@ -59,7 +59,7 @@ export default function Forecast() {
     fetchProjects()
   }, [])
 
-  // Reload on year change
+  // Reload data on year change
   useEffect(() => {
     if (!year) return
     fetchEntries({ type:'forecast', year }).then(r => {
@@ -67,7 +67,7 @@ export default function Forecast() {
         const e = { ...raw }
         MONTH_KEYS.forEach(m => {
           if (raw[m] === undefined) {
-            const Up = m.charAt(0).toUpperCase()+m.slice(1)
+            const Up = m.charAt(0).toUpperCase() + m.slice(1)
             if (raw[Up] !== undefined) {
               e[m] = raw[Up]
               delete e[Up]
@@ -94,7 +94,7 @@ export default function Forecast() {
     })
   }
 
-  // Save
+  // Save changes
   const handleSave = async () => {
     const clean = draft.map(e => {
       const { _id, createdAt, updatedAt, __isNew, ...rest } = e
@@ -105,13 +105,13 @@ export default function Forecast() {
     setYear(year) // trigger reload
   }
 
-  // Cancel
+  // Cancel edits
   const handleCancel = () => {
     setDraft(d => d.map(row => ({ ...row })))
     setIsEditing(false)
   }
 
-  // Add row
+  // Add blank row
   const handleAdd = () => {
     const blank = {
       accountName:'', deliveryManager:'', projectName:'',
@@ -124,34 +124,29 @@ export default function Forecast() {
     setTimeout(()=>wrapperRef.current.scrollLeft = wrapperRef.current.scrollWidth, 100)
   }
 
-  // Delete unsaved
+  // Delete unsaved row
   const handleDel = idx => setDraft(d=>d.filter((_,i)=>i!==idx))
 
-  // Change cell
+  // Cell edit
   const onChange = (i, f, v) => {
     setDraft(d => {
       const c = [...d]; c[i] = { ...c[i], [f]: v }; return c
     })
   }
 
-  // Row sum
+  // Row total
   const rowSum = r => MONTH_KEYS.reduce((a,m)=>a+(parseFloat(r[m])||0),0)
 
-  // Processed: filter + sort
+  // Filter + sort pipeline
   const processed = useMemo(() => {
     let rows = [...draft]
-
-    // Filter
     if (filterBy && filterVal) {
-      rows = rows.filter(r=> (r[filterBy]||'') === filterVal)
+      rows = rows.filter(r => (r[filterBy]||'').toString() === filterVal)
     }
-
-    // Sort
     if (sortConfig.key) {
       rows.sort((a,b) => {
-        let av, bv
-        const k = sortConfig.key
-        if (k === 'total') {
+        let av, bv, k = sortConfig.key
+        if (k==='total') {
           av = rowSum(a); bv = rowSum(b)
         } else if (MONTH_KEYS.includes(k)) {
           av = +a[k]||0; bv = +b[k]||0
@@ -166,32 +161,36 @@ export default function Forecast() {
         return 0
       })
     }
-
     return rows
   }, [draft, filterBy, filterVal, sortConfig])
 
   // Bottom totals
   const bottomTotals = useMemo(() =>
-    MONTH_KEYS.map(m => processed.reduce((a,r)=>a+(parseFloat(r[m])||0),0).toFixed(2))
-  ,[processed])
+    MONTH_KEYS.map(m =>
+      processed.reduce((a,r)=>a+(parseFloat(r[m])||0),0).toFixed(2)
+    )
+  , [processed])
 
-  // Filter options
+  // Filter dropdown values
   const filterOptions = useMemo(() => {
     if (!filterBy) return []
     return Array.from(new Set(draft.map(r=>(r[filterBy]||'').toString()).filter(v=>v)))
   }, [draft, filterBy])
 
-  // Toggle column
+  // Column toggle
   const toggleCol = key =>
     setCols(c => c.includes(key) ? c.filter(x=>x!==key) : [...c,key])
 
-  // Sort handler
+  // Sort click
   const handleSort = key => {
     setSortConfig(sc => sc.key === key
       ? { key, direction: sc.direction==='asc'?'desc':'asc' }
       : { key, direction:'asc' }
     )
   }
+
+  // Tooltip text
+  const tooltip = isEditing ? "Can't modify in edit mode" : ""
 
   return (
     <div className="p-6">
@@ -202,7 +201,7 @@ export default function Forecast() {
           value={year||''}
           onChange={e=>setYear(e.target.value)}
           disabled={isEditing}
-          title={isEditing ? "Can't modify in edit mode" : ""}
+          title={tooltip}
         >
           {years.map(y=> <option key={y} value={y}>FY {y}</option>)}
         </select>
@@ -219,10 +218,12 @@ export default function Forecast() {
 
       {/* Collapse / Columns / Filter */}
       <div className="flex flex-wrap items-center mb-4">
-        {/* left group */}
+        {/* left */}
         <div className="flex items-center space-x-4">
           <button
             onClick={()=>setCollapsed(c=>!c)}
+            disabled={isEditing}
+            title={tooltip}
             className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
           >
             {collapsed
@@ -230,21 +231,21 @@ export default function Forecast() {
               : <><ChevronDoubleLeftIcon  className="h-5 w-5"/><span>Compact View</span></>
             }
           </button>
-          {!collapsed && <>
-            <strong>Show columns:</strong>
-            {STATIC_COLS.map(c=> (
-              <label key={c.key} className="mr-4">
-                <input
-                  type="checkbox"
-                  checked={cols.includes(c.key)}
-                  onChange={()=>toggleCol(c.key)}
-                /> {c.label}
-              </label>
-            ))}
-          </>}
+          {!collapsed && STATIC_COLS.map(c=>(
+            <label key={c.key} className="mr-4">
+              <input
+                type="checkbox"
+                checked={cols.includes(c.key)}
+                onChange={()=>toggleCol(c.key)}
+                disabled={isEditing}
+                title={tooltip}
+              />{' '}
+              {c.label}
+            </label>
+          ))}
         </div>
 
-        {/* right group */}
+        {/* right */}
         <div className="flex items-center space-x-2 ml-auto">
           <label>Filter By:</label>
           <select
@@ -252,7 +253,7 @@ export default function Forecast() {
             value={filterBy}
             onChange={e=>{ setFilterBy(e.target.value); setFilterVal('') }}
             disabled={isEditing}
-            title={isEditing ? "Can't modify in edit mode" : ""}
+            title={tooltip}
           >
             <option value="">None</option>
             <option value="accountName">Account Name</option>
@@ -267,7 +268,7 @@ export default function Forecast() {
               value={filterVal}
               onChange={e=>setFilterVal(e.target.value)}
               disabled={isEditing}
-              title={isEditing ? "Can't modify in edit mode" : ""}
+              title={tooltip}
             >
               <option value="">All Values</option>
               {filterOptions.map(v=>(
@@ -280,7 +281,7 @@ export default function Forecast() {
             <button
               onClick={()=>{ setFilterBy(''); setFilterVal('') }}
               disabled={isEditing}
-              title={isEditing ? "Can't modify in edit mode" : ""}
+              title={tooltip}
               className="text-red-600"
             >
               <TrashIcon className="h-4 w-4"/>
@@ -301,7 +302,6 @@ export default function Forecast() {
                 Account Name
                 {sortConfig.key==='accountName' && (sortConfig.direction==='asc'?' ↑':' ↓')}
               </th>
-
               {!collapsed && STATIC_COLS.map(c=>cols.includes(c.key)&&(
                 <th
                   key={c.key}
@@ -312,7 +312,6 @@ export default function Forecast() {
                   {sortConfig.key===c.key && (sortConfig.direction==='asc'?' ↑':' ↓')}
                 </th>
               ))}
-
               {MONTH_KEYS.map(m=>(
                 <th
                   key={m}
@@ -323,28 +322,24 @@ export default function Forecast() {
                   {sortConfig.key===m && (sortConfig.direction==='asc'?' ↑':' ↓')}
                 </th>
               ))}
-
               <th
                 className="cursor-pointer total-col"
                 onClick={()=>handleSort('total')}
               >
                 Total{sortConfig.key==='total'&&(sortConfig.direction==='asc'?' ↑':' ↓')}
               </th>
-
               <th
                 className="cursor-pointer comments-col"
                 onClick={()=>handleSort('comments')}
               >
                 Comments{sortConfig.key==='comments'&&(sortConfig.direction==='asc'?' ↑':' ↓')}
               </th>
-
               <th
                 className="cursor-pointer timestamp-col"
                 onClick={()=>handleSort('updatedAt')}
               >
                 Last Updated{sortConfig.key==='updatedAt'&&(sortConfig.direction==='asc'?' ↑':' ↓')}
               </th>
-
               <th></th>
             </tr>
           </thead>
@@ -372,7 +367,8 @@ export default function Forecast() {
                 {MONTH_KEYS.map(m=>(
                   <td key={m} className="month-col wrap">
                     <input
-                      type="number" step="0.01" disabled={!isEditing}
+                      type="number" step="0.01"
+                      disabled={!isEditing}
                       value={row[m]}
                       onChange={e=>onChange(i,m,e.target.value)}
                       className="cell-input wrap text-right"
@@ -408,13 +404,10 @@ export default function Forecast() {
                 </td>
               </tr>
             ))}
-
             {/* bottom totals */}
             <tr className="bottom-row">
               <td className="sticky-first font-semibold">Totals</td>
-              {!collapsed && STATIC_COLS.map(c=>cols.includes(c.key)&&(
-                <td key={c.key}></td>
-              ))}
+              {!collapsed && STATIC_COLS.map(c=>cols.includes(c.key)&&<td key={c.key}/> )}
               {bottomTotals.map((t,i)=>(
                 <td
                   key={i}
