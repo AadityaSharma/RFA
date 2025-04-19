@@ -181,7 +181,7 @@ export default function Forecast() {
           <thead>
             <tr>
               <th className="sticky-header">Account Name</th>
-              {!collapsed && STATIC_COLS.slice(1).map(c=>
+              {!collapsed && STATIC_COLS.map(c=>
                 cols.includes(c.key)
                   ? <th key={c.key} className="sticky-header">{c.label}</th>
                   : null
@@ -197,7 +197,7 @@ export default function Forecast() {
             {draft.map((row,i)=>(
               <tr key={i}>
                 <td className="sticky-first wrap">{row.accountName}</td>
-                {!collapsed && STATIC_COLS.slice(1).map(c=>
+                {!collapsed && STATIC_COLS.map(c=>
                   cols.includes(c.key)
                     ? <td key={c.key} className="wrap">
                         <input
@@ -248,7 +248,7 @@ export default function Forecast() {
             {/* bottom‑totals */}
             <tr className="bottom-row">
               <td className="sticky-first font-semibold">Totals</td>
-              {!collapsed && STATIC_COLS.slice(1).map((c,j)=> (
+              {!collapsed && STATIC_COLS.map((c,j)=> (
                 cols.includes(c.key)
                   ? <td key={j}></td>
                   : null
