@@ -34,7 +34,7 @@ export default function Forecast() {
   const [year,      setYear]      = useState(null)
   const [isEditing, setIsEditing] = useState(false)
   const [cols,      setCols]      = useState(STATIC_COLS.map(c=>c.key))
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
   const wrapperRef               = useRef()
 
   // load years & seed
@@ -172,20 +172,25 @@ export default function Forecast() {
           className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
         >
           {collapsed
-            ? <><ChevronDoubleRightIcon className="h-5 w-5"/> <span>Expand Info</span></>
-            : <><ChevronDoubleLeftIcon  className="h-5 w-5"/> <span>Collapse Info</span></>
+            ? <><ChevronDoubleRightIcon className="h-5 w-5"/> <span>Detailed View</span></>
+            : <><ChevronDoubleLeftIcon  className="h-5 w-5"/> <span>Compact view</span></>
           }
         </button>
-        <strong>Show columns:</strong>
-        {STATIC_COLS.map(c=> (
-          <label key={c.key} className="mr-4">
-            <input
-              type="checkbox"
-              checked={cols.includes(c.key)}
-              onChange={()=>toggleCol(c.key)}
-            /> {c.label}
-          </label>
-        ))}
+        {!collapsed
+          ? <>
+            <strong>Show columns:</strong>
+            {STATIC_COLS.map(c=> (
+              <label key={c.key} className="mr-4">
+                <input
+                  type="checkbox"
+                  checked={cols.includes(c.key)}
+                  onChange={()=>toggleCol(c.key)}
+                /> {c.label}
+              </label>
+            ))}
+          </>: <></>
+        }
+
       </div>
 
       {/* data table */}
@@ -287,7 +292,7 @@ export default function Forecast() {
                 <td
                   key={i}
                   className="month-col total-background text-right font-semibold"
-                >{t}</td>
+                >${t}</td>
               ))}
               <td className="total-col"></td>
               <td className="comments-col"></td>
