@@ -10,7 +10,7 @@ import {
 import { XIcon } from '@heroicons/react/solid'
 import '../pages/Forecast.css'    // reuse the same base table styles
 
-const MONTH_KEYS  = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+const MONTH_KEYS  = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTH_LABEL = m => m.charAt(0).toUpperCase()+m.slice(1)
 const PROBS       = ['A','B','C','D','E']
 const STATUSES    = ['In-Progress','Abandoned','Won']
