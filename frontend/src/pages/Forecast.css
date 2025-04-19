@@ -25,7 +25,7 @@
   border:none; border-radius:4px;
   margin-right:6px;
   cursor:pointer;
-  font-size:0.875rem;
+  font-size:0.775rem;
 }
 
 /* wrapper */
@@ -81,7 +81,7 @@
   vertical-align:middle;
   white-space:nowrap;
   max-width: 140px;
-  font-size: 14px;
+  font-size: 11px;
 }
 
 /* inputs */
@@ -96,8 +96,8 @@
 
 /* month columns */
 .month-col {
-  min-width:60px; 
-  max-width:100px ! important;
+  min-width:50px; 
+  max-width:60px ! important;
   background:#ffedbd;
   text-align:right;
 }
