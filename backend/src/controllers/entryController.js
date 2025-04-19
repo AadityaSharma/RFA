@@ -1,6 +1,12 @@
 // backend/src/controllers/entryController.js
 const Entry = require('../models/Entry');
 
+// month fields, same as frontend
+const MONTH_KEYS = [
+  'Apr','May','Jun','Jul','Aug','Sep',
+  'Oct','Nov','Dec','Jan','Feb','Mar'
+];
+
 exports.list = async (req, res) => {
   const { type, year } = req.query;
   try {
@@ -13,51 +19,66 @@ exports.list = async (req, res) => {
 
 exports.upsert = async (req, res) => {
   const { type, year, entries } = req.body;
-  if (!type || !year) {
-    return res.status(400).json({ message: 'Missing type or year' });
-  }
   if (!Array.isArray(entries)) {
     return res.status(400).json({ message: 'Must send { entries: [] }' });
   }
 
-  // validation
-  const months = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
-  for (let i = 0; i < entries.length; i++) {
-    const e = entries[i];
+  // --- VALIDATION ---
+  const errors = [];
+  entries.forEach((e, idx) => {
     if (!e.accountName || !e.accountName.trim()) {
-      return res.status(400).json({ message: `Entry ${i+1}: accountName required` });
+      errors.push(`Entry ${idx+1}: accountName is required`);
     }
     if (!e.projectName || !e.projectName.trim()) {
-      return res.status(400).json({ message: `Entry ${i+1}: projectName required` });
+      errors.push(`Entry ${idx+1}: projectName is required`);
     }
-    for (const m of months) {
-      if (typeof e[m] !== 'number' || e[m] < 0) {
-        return res.status(400).json({ message: `Entry ${i+1}: ${m} must be a non-negative number` });
+    MONTH_KEYS.forEach(month => {
+      const v = e[month];
+      if (typeof v !== 'number' || v < 0) {
+        errors.push(`Entry ${idx+1}: ${month} must be a non-negative number`);
       }
-    }
+    });
+  });
+  if (errors.length) {
+    return res.status(400).json({ message: errors.join('; ') });
   }
 
   try {
+    // Build bulk ops
     const ops = entries.map(e => {
       const filter = {
         projectName: e.projectName,
         accountName: e.accountName,
-        year,
+        year: Number(year),
         type
       };
-      const update = { ...e, year, type };
+      const update = { ...e, year: Number(year), type };
       return {
-        updateOne: { filter, update: { $set: update }, upsert: true }
+        updateOne: {
+          filter,
+          update: { $set: update },
+          upsert: true
+        }
       };
     });
-    await Entry.bulkWrite(ops, { ordered: false });
-    const saved = await Entry.find({ type, year }).lean();
+
+    // Run with validation
+    await Entry.bulkWrite(ops, {
+      ordered: false,
+      // ensure mongoose schema validators run
+      // (requires mongoose >= 4.1.0)
+      runValidators: true
+    });
+
+    // Return fresh list
+    const saved = await Entry.find({ type, year: Number(year) }).lean();
     res.json(saved);
   } catch (err) {
-    console.error(err);
+    console.error('Entry upsert error:', err);
     res.status(500).json({ message: err.message });
   }
 };
+
 
 exports.getYears = async (req, res) => {
   const { type } = req.query; // 'forecast' or 'opportunities'
