@@ -212,6 +212,7 @@ export default function Forecast() {
               <th className="total-col">Total</th>
               <th className="comments-col">Comments</th>
               <th className="timestamp-col sticky-col">Last Updated</th>
+              <th>{/* Action icon buttons are displayed in this column */}</th>
             </tr>
           </thead>
           <tbody>
@@ -270,21 +271,26 @@ export default function Forecast() {
                       onChange={e=>handleChange(i,'comments',e.target.value)}
                       className="cell-input"
                     />
-                    {row.__isNew && isEditing &&
-                      <XIcon
-                        onClick={()=>handleDeleteRow(i)}
-                        className="h-4 w-4 text-red-600 cursor-pointer"
-                      />
-                    }
                   </div>
                 </td>
 
-                <td className="timestamp-col sticky-col">
+                {/* last updated */}
+                <td className="p-1 text-sm text-gray-600l">
                   {row._updatedAt
                     ? row._updatedAt.toLocaleDateString(undefined,{
                         day:'2-digit',month:'short',year:'numeric'
                       })
                     : '--'
+                  }
+                </td>
+
+                {/* delete‑icon */}
+                <td className="p-1 text-sm text-gray-600">
+                  {row.__isNew && isEditing &&
+                    <XIcon
+                      onClick={()=>handleDeleteRow(i)}
+                      className="h-4 w-4 text-red-600 cursor-pointer"
+                    />
                   }
                 </td>
               </tr>
