@@ -256,7 +256,7 @@ export default function Forecast() {
                 <td
                   key={i}
                   className="month-col total-background text-right font-semibold"
-                >{t}</td>
+                >${t}</td>
               )}
               <td className="total-col"></td>
               <td className="comments-col"></td>
