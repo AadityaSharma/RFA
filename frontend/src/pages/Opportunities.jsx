@@ -42,13 +42,6 @@ export default function Opportunities() {
     fetchEntries({ type:'opportunity', year:fy }).then(r => {
       const norm = (r.data||[]).map(raw => {
         const e = { ...raw }
-        MONTH_KEYS.forEach(k => {
-          const K = MONTH_LABEL(k)
-          if (raw[K] !== undefined) {
-            e[k] = raw[K]
-            delete e[K]
-          }
-        })
         return e
       })
       setEntries(norm)
