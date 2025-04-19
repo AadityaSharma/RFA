@@ -437,7 +437,7 @@ export default function Forecast() {
                     </td>
                   ))}
                   <td className="total-col text-right">
-                    ${rowSum(row).toFixed(2)}
+                    <b>${rowSum(row).toFixed(2)}</b>
                   </td>
                   <td className="comments-col wrap">
                     <input
