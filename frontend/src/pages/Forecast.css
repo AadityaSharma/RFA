@@ -143,8 +143,8 @@
 .month-col {
   background:#ffedbd;
   text-align:right;
-  min-width:50px;
-  max-width:60px !important;
+  min-width:65px;
+  max-width:65px !important;
 }
 
 /* total column */
