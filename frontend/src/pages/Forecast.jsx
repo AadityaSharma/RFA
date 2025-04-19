@@ -1,3 +1,4 @@
+// frontend/src/pages/Forecast.jsx
 import React, { useState, useEffect, useRef } from 'react'
 import {
   fetchEntries,
@@ -6,8 +7,18 @@ import {
   upsertEntries,
   exportEntries
 } from '../services/api'
-import { XIcon } from '@heroicons/react/solid'
+import { XIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from '@heroicons/react/solid'
 import './Forecast.css'
+
+const STATIC_COLS = [
+  { key: 'accountName', label: 'Account Name' },
+  { key: 'deliveryManager', label: 'Delivery Manager' },
+  { key: 'projectName', label: 'Project Name' },
+  { key: 'BU', label: 'BU' },
+  { key: 'VDE', label: 'VDE' },
+  { key: 'GDE', label: 'GDE' },
+  { key: 'account', label: 'Account' }
+]
 
 const MONTH_KEYS = [
   'Apr','May','Jun','Jul','Aug','Sep',
@@ -15,55 +26,43 @@ const MONTH_KEYS = [
 ]
 
 export default function Forecast() {
-  const [years, setYears]             = useState([])
-  const [entries, setEntries]         = useState([])
-  const [draftEntries, setDraftEntries] = useState([])
-  const [year, setYear]               = useState(null)
-  const [isEditing, setIsEditing]     = useState(false)
-  const wrapperRef                    = useRef()
+  const [years, setYears]               = useState([])
+  const [entries, setEntries]           = useState([])
+  const [draft, setDraft]               = useState([])
+  const [year, setYear]                 = useState(null)
+  const [isEditing, setIsEditing]       = useState(false)
+  const [collapsed, setCollapsed]       = useState(false)
+  const wrapperRef                      = useRef()
 
-  // compute freeze cutoff dates (month‐end minus 24h)
-  const freezeDates = React.useMemo(() => {
-    if (!year) return {}
-    const nowYear = Number(year)
-    const map = {}
-    MONTH_KEYS.forEach((m, idx) => {
-      // idx=0 -> april=3, since Date month is 0‐Jan
-      const monthIndex = (3 + idx) % 12 
-      const mYear = monthIndex < 3 ? nowYear + 1 : nowYear
-      const lastDay = new Date(mYear, monthIndex + 1, 0, 0, 0, 0)
-      map[m] = new Date(lastDay.getTime() - 24*60*60*1000)
-    })
-    return map
-  }, [year])
-
-  // load years
+  // load years & initial
   useEffect(() => {
     fetchYears('forecast').then(r => {
       const ys = r.data.years || []
       setYears(ys)
-      if (ys.length) setYear(ys[0])
+      if (ys[0]) setYear(ys[0])
     })
-    fetchProjects()  // if you need projects dropdown later
+    fetchProjects() // no-op, for future UX
   }, [])
 
-  // reload + normalize + row‐color logic
+  // reload whenever year changes
   useEffect(() => {
     if (!year) return
     fetchEntries({ type:'forecast', year }).then(r => {
-      const now = Date.now()
-      const data = (r.data || []).map(raw => {
+      // normalize month keys from server
+      const norm = (r.data||[]).map(raw => {
         const e = { ...raw }
-        // parse updatedAt to Date
-        e._updatedAt = e.updatedAt ? new Date(e.updatedAt) : null
-
-        // ** stub for history **
-        // e._history = raw._history || []  
-        //   // e._history should be array of last two values for each month
+        MONTH_KEYS.forEach(m => {
+          if (raw[m] !== undefined) return
+          const up = m.charAt(0).toUpperCase()+m.slice(1)
+          if (raw[up] !== undefined) {
+            e[m] = raw[up]
+            delete e[up]
+          }
+        })
         return e
       })
-      setEntries(data)
-      setDraftEntries(data.map(e => ({ ...e })))
+      setEntries(norm)
+      setDraft(norm.map(e=>({ ...e })))
       setIsEditing(false)
     })
   }, [year])
@@ -81,220 +80,183 @@ export default function Forecast() {
     })
   }
 
-  // Save
+  // Save bulk
   const handleSave = async () => {
-    // strip out any client‐only fields before sending
-    const clean = draftEntries.map(e => {
-      const { _id, createdAt, updatedAt, __isNew, ...rest } = e;
-      return rest;
-    });
-
-    await upsertEntries({
-      type:    'forecast',
-      year,
-      entries: clean
-    });
-
-    setIsEditing(false);
-    // reload from server
-    fetchEntries({ type:'forecast', year }).then(r => {
-      // … your existing normalize + setEntries logic …
-    });
+    const clean = draft.map(e => {
+      const { _id, createdAt, updatedAt, __isNew, ...rest } = e
+      return rest
+    })
+    await upsertEntries({ type:'forecast', year, entries: clean })
+    setIsEditing(false)
+    setYear(year) // re‑trigger reload
   }
 
   // Cancel
   const handleCancel = () => {
-    setDraftEntries(entries.map(e => ({ ...e })))
+    setDraft(entries.map(e=>({ ...e })))
     setIsEditing(false)
   }
 
-  // Add new
-  const handleAddRow = () => {
-    const blank = {
-      accountName:'',
-      deliveryManager:'',
-      projectName:'',
-      BU:'',VDE:'',GDE:'',account:'',
-      comments:'',
-      __isNew:true
-    }
-    MONTH_KEYS.forEach(m => blank[m]=0)
-    setDraftEntries(draftEntries.concat(blank))
+  // Add row
+  const handleAdd = () => {
+    const blank = { accountName:'',deliveryManager:'',projectName:'',
+      BU:'',VDE:'',GDE:'',account:'',comments:'',__isNew:true }
+    MONTH_KEYS.forEach(m=> blank[m]=0)
+    setDraft(d => [...d, blank])
     setIsEditing(true)
-    setTimeout(()=>{
-      wrapperRef.current.scrollLeft = wrapperRef.current.scrollWidth
-    },100)
+    setTimeout(()=> wrapperRef.current.scrollLeft = wrapperRef.current.scrollWidth, 100)
   }
 
-  // Delete just‐new rows
-  const handleDeleteRow = idx => {
-    setDraftEntries(draftEntries.filter((_,i)=>i!==idx))
+  // Delete unsaved
+  const handleDel = idx => {
+    setDraft(d => d.filter((_,i)=>i!==idx))
   }
 
-  // single‐cell edit
-  const handleChange = (i,field,val) => {
-    const copy = [...draftEntries]
-    copy[i] = { ...copy[i], [field]: val }
-    setDraftEntries(copy)
+  // Single change
+  const onChange = (i, f, v) => {
+    setDraft(d => {
+      const c = [...d]; c[i] = { ...c[i], [f]: v }; return c
+    })
   }
 
-  // row age class
-  const rowAgeClass = e => {
-    if (!e._updatedAt) return ''
-    const days = (Date.now() - e._updatedAt.getTime())/(1000*60*60*24)
-    if (days>14) return 'age-danger'
-    if (days>7)  return 'age-warning'
-    return ''
-  }
+  // Per-row total
+  const rowSum = row => MONTH_KEYS.reduce((a,m)=>a+(parseFloat(row[m])||0),0)
 
-  // helper for total
-  const sum = row =>
-    MONTH_KEYS.reduce((tot,m)=>tot+(parseFloat(row[m])||0),0)
-
-  // variance arrow (stub)
-  const renderVariance = (row,m) => {
-    // you’ll need backend to send last two values e._history[m] = [prev,actual]
-    const hist = row._history && row._history[m]
-    if (!hist || hist.length<2) return null
-    const delta = hist[1] - hist[0]
-    const sym   = delta>0 ? '↑' : '↓'
-    return <sup className={delta>0?'var-up':'var-down'}>
-      {sym}{Math.abs(delta).toFixed(2)}
-    </sup>
-  }
+  // Bottom totals
+  const bottomTotals = MONTH_KEYS.map(m =>
+    draft.reduce((a,r)=>a+(parseFloat(r[m])||0),0).toFixed(2)
+  )
 
   return (
     <div className="p-6">
+      {/* controls */}
       <div className="flex items-center mb-4 space-x-2">
         <select
           className="border rounded px-2 py-1"
           value={year||''}
           onChange={e=>setYear(e.target.value)}
         >
-          {years.map(y=>
-            <option key={y} value={y}>FY {y}</option>
-          )}
+          {years.map(y=><option key={y} value={y}>FY {y}</option>)}
         </select>
-        <button onClick={handleExport}
-                className="btn-export">Export CSV</button>
-
+        <button onClick={handleExport} className="btn-export">Export CSV</button>
         {isEditing
           ? <>
-              <button onClick={handleSave} className="btn-save">Save</button>
+              <button onClick={handleSave}   className="btn-save">Save</button>
               <button onClick={handleCancel} className="btn-cancel">Cancel</button>
             </>
           : <button onClick={()=>setIsEditing(true)} className="btn-edit">Edit</button>
         }
-
-        <button onClick={handleAddRow} className="btn-add ml-auto">
-          + Add Project
+        <button onClick={handleAdd} className="btn-add ml-auto">+ Add Project</button>
+        <button
+          onClick={()=>setCollapsed(c=>!c)}
+          className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
+        >
+          {collapsed
+            ? <><ChevronDoubleRightIcon className="h-5 w-5"/> <span>Expand Info</span></>
+            : <><ChevronDoubleLeftIcon  className="h-5 w-5"/> <span>Collapse Info</span></>
+          }
         </button>
       </div>
 
-      <div ref={wrapperRef}
-           className="table-wrapper"
-           style={{ maxHeight:'65vh' }}>
+      {/* table */}
+      <div ref={wrapperRef} className="table-wrapper" style={{ maxHeight:'65vh' }}>
         <table className="forecast-table">
           <thead>
             <tr>
+              {/* always‑visible */}
               <th className="sticky-col">Account Name</th>
-              <th>Delivery Manager</th>
-              <th>Project Name</th>
-              <th>BU</th>
-              <th>VDE</th>
-              <th>GDE</th>
-              <th>Account</th>
-              {MONTH_KEYS.map(m=>
-                <th key={m} className="month-col">
-                  {m.charAt(0).toUpperCase()+m.slice(1)}
-                </th>
-              )}
+              {/* collapsed group */}
+              {!collapsed && STATIC_COLS.slice(1).map(col=>(
+                <th key={col.key}>{col.label}</th>
+              ))}
+              {/* months */}
+              {MONTH_KEYS.map(m=>(
+                <th key={m} className="month-col">{m}</th>
+              ))}
               <th className="total-col">Total</th>
               <th className="comments-col">Comments</th>
-              <th className="timestamp-col sticky-col">Last Updated</th>
-              <th>{/* Action icon buttons are displayed in this column */}</th>
+              <th className="timestamp-col sticky-col">Last Updated</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            {draftEntries.map((row,i)=>(
-              <tr key={i} className={rowAgeClass(row)}>
-                {/* Sticky first */}
+            {draft.map((row,i)=>(
+              <tr key={i}>
+                {/* always */}
                 <td className="sticky-col">
                   <input
                     disabled={!isEditing}
                     value={row.accountName||''}
-                    onChange={e=>handleChange(i,'accountName',e.target.value)}
-                    className="cell-input"
+                    onChange={e=>onChange(i,'accountName',e.target.value)}
+                    className="cell-input wrap"
                   />
                 </td>
-
-                {[
-                  'deliveryManager','projectName',
-                  'BU','VDE','GDE','account'
-                ].map((fld,j)=>(
-                  <td key={j}>
+                {/* info group */}
+                {!collapsed && STATIC_COLS.slice(1).map(col=>(
+                  <td key={col.key}>
                     <input
                       disabled={!isEditing}
-                      value={row[fld]||''}
-                      onChange={e=>handleChange(i,fld,e.target.value)}
-                      className="cell-input"
+                      value={row[col.key]||''}
+                      onChange={e=>onChange(i,col.key,e.target.value)}
+                      className="cell-input wrap"
                     />
                   </td>
                 ))}
-
-                {MONTH_KEYS.map(mon=>(
-                  <td key={mon} className="month-col text-right">
-                    <div className="cell-wrapper">
-                      <input
-                        type="number" step="0.01"
-                        disabled={!isEditing || Date.now()>freezeDates[mon]}
-                        value={row[mon]}
-                        onChange={e=>handleChange(i,mon,e.target.value)}
-                        className="cell-input text-right"
-                      />
-                      {!isEditing && Date.now()>freezeDates[mon] &&
-                        renderVariance(row,mon)
-                      }
-                    </div>
+                {/* months */}
+                {MONTH_KEYS.map(m=>(
+                  <td key={m} className="month-col">
+                    <input
+                      type="number" step="0.01"
+                      disabled={!isEditing}
+                      value={row[m]}
+                      onChange={e=>onChange(i,m,e.target.value)}
+                      className="cell-input wrap text-right"
+                    />
                   </td>
                 ))}
-
+                {/* total */}
                 <td className="total-col text-right font-semibold">
-                  ${sum(row).toFixed(2)}
+                  ${rowSum(row).toFixed(2)}
                 </td>
-
+                {/* comments */}
                 <td className="comments-col">
-                  <div className="cell-wrapper">
-                    <input
-                      disabled={!isEditing}
-                      value={row.comments||''}
-                      onChange={e=>handleChange(i,'comments',e.target.value)}
-                      className="cell-input"
-                    />
-                  </div>
+                  <input
+                    disabled={!isEditing}
+                    value={row.comments||''}
+                    onChange={e=>onChange(i,'comments',e.target.value)}
+                    className="cell-input wrap"
+                  />
                 </td>
-
-                {/* last updated */}
-                <td className="p-1 text-sm text-gray-600l">
-                  {row._updatedAt
-                    ? row._updatedAt.toLocaleDateString(undefined,{
-                        day:'2-digit',month:'short',year:'numeric'
-                      })
-                    : '--'
-                  }
+                {/* timestamp */}
+                <td className="timestamp-col">
+                  {row.updatedAt
+                    ? new Date(row.updatedAt).toLocaleDateString(undefined,{
+                        day:'2-digit',month:'short',year:'numeric'})
+                    : '--'}
                 </td>
-
-                {/* delete‑icon */}
-                <td className="p-1 text-sm text-gray-600">
+                {/* delete */}
+                <td>
                   {row.__isNew && isEditing &&
                     <XIcon
-                      onClick={()=>handleDeleteRow(i)}
+                      onClick={()=>handleDel(i)}
                       className="h-4 w-4 text-red-600 cursor-pointer"
-                    />
-                  }
+                    />}
                 </td>
               </tr>
             ))}
+
+            {/* bottom‑totals row */}
+            <tr className="bottom-row">
+              <td className="sticky-col font-semibold">Totals</td>
+              {!collapsed && <td colSpan={STATIC_COLS.length - 1}></td>}
+              {bottomTotals.map((t,i)=>(
+                <td key={i} className="month-col text-right font-semibold">{t}</td>
+              ))}
+              <td className="total-col"></td>
+              <td className="comments-col"></td>
+              <td className="timestamp-col"></td>
+              <td></td>
+            </tr>
           </tbody>
         </table>
       </div>
