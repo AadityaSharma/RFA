@@ -227,8 +227,9 @@ export default function Opportunities() {
                 <th key={m} className="month-col">{MONTH_LABEL(m)}</th>
               ))}
               <th className="total-col">Total</th>
-              <th>Last Updated At</th>
               <th className="comments-col">Comments</th>
+              <th>Last Updated</th>
+              <th>{/* Action icon buttons are displayed in this column */}</th>
             </tr>
           </thead>
           <tbody>
@@ -300,6 +301,16 @@ export default function Opportunities() {
                     }
                   </td>
 
+                  {/* comments */}
+                  <td className="comments-col p-1 flex items-center space-x-1">
+                    <input
+                      disabled={!isEditing||isFrozen}
+                      value={row.comments||''}
+                      onChange={e=>handleChange(i,'comments',e.target.value)}
+                      className="cell-input flex-grow"
+                    />
+                  </td>
+
                   {/* last updated */}
                   <td className="p-1 text-sm text-gray-600">
                     {row.updatedAt
@@ -308,16 +319,10 @@ export default function Opportunities() {
                         })
                       : '-'}
                   </td>
-
-                  {/* comments + delete‑icon */}
-                  <td className="comments-col p-1 flex items-center space-x-1">
-                    <input
-                      disabled={!isEditing||isFrozen}
-                      value={row.comments||''}
-                      onChange={e=>handleChange(i,'comments',e.target.value)}
-                      className="cell-input flex-grow"
-                    />
-                    {row.__isNew&&isEditing&&(
+                  
+                  {/* delete‑icon */}
+                  <td className="p-1 text-sm text-gray-600">
+                  {row.__isNew&&isEditing&&(
                       <XIcon
                         onClick={()=>handleDeleteRow(i)}
                         className="h-4 w-4 text-red-600 cursor-pointer"
