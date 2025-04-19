@@ -10,8 +10,8 @@ import { XIcon } from '@heroicons/react/solid'
 import './Forecast.css'
 
 const MONTH_KEYS = [
-  'apr','may','jun','jul','aug','sep',
-  'oct','nov','dec','jan','feb','mar'
+  'Apr','May','Jun','Jul','Aug','Sep',
+  'Oct','Nov','Dec','Jan','Feb','Mar'
 ]
 
 export default function Forecast() {
