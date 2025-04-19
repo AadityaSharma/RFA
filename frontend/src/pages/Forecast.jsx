@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import {
   fetchEntries,
   fetchYears,
@@ -35,28 +35,30 @@ export default function Forecast() {
   const [isEditing, setIsEditing] = useState(false)
   const [cols,      setCols]      = useState(STATIC_COLS.map(c=>c.key))
   const [collapsed, setCollapsed] = useState(true)
-  const wrapperRef               = useRef()
+  const [filterBy,  setFilterBy]  = useState('')
+  const [filterValue, setFilterValue] = useState('')
+  const [sortConfig, setSortConfig]   = useState({ key: '', direction: 'asc' })
+  const wrapperRef                 = useRef()
 
-  // load years & seed
+  // load years
   useEffect(() => {
     fetchYears('forecast').then(r => {
       const ys = r.data.years || []
       setYears(ys)
       if (ys[0]) setYear(ys[0])
     })
-    fetchProjects() // no‐op for now
+    fetchProjects()
   }, [])
 
-  // reload on year change
+  // reload data on year change
   useEffect(() => {
     if (!year) return
     fetchEntries({ type:'forecast', year }).then(r => {
       const norm = (r.data||[]).map(raw => {
         const e = { ...raw }
-        // normalize uppercase month keys
         MONTH_KEYS.forEach(m => {
           if (raw[m] === undefined) {
-            const Up = m.charAt(0).toUpperCase()+m.slice(1)
+            const Up = m.charAt(0).toUpperCase() + m.slice(1)
             if (raw[Up] !== undefined) {
               e[m] = raw[Up]
               delete e[Up]
@@ -84,7 +86,7 @@ export default function Forecast() {
     })
   }
 
-  // save all changes
+  // save all edits
   const handleSave = async () => {
     const clean = draft.map(e => {
       const { _id, createdAt, updatedAt, __isNew, ...rest } = e
@@ -101,7 +103,7 @@ export default function Forecast() {
     setIsEditing(false)
   }
 
-  // add blank row
+  // add new row
   const handleAdd = () => {
     const blank = {
       accountName:'', deliveryManager:'', projectName:'',
@@ -114,7 +116,7 @@ export default function Forecast() {
     setTimeout(()=> wrapperRef.current.scrollLeft = wrapperRef.current.scrollWidth, 100)
   }
 
-  // delete unsaved
+  // delete unsaved row
   const handleDel = idx => setDraft(d => d.filter((_,i)=>i!==idx))
 
   // single‐cell edit
@@ -126,22 +128,76 @@ export default function Forecast() {
     })
   }
 
-  // per‐row sum
+  // compute per‐row sum
   const rowSum = r =>
     MONTH_KEYS.reduce((a,m)=> a + (parseFloat(r[m])||0), 0)
 
-  // bottom totals
-  const bottomTotals = MONTH_KEYS.map(m =>
-    draft.reduce((a,r)=> a+(parseFloat(r[m])||0), 0).toFixed(2)
-  )
+  // compute bottom totals (after filter & sort)
+  const processed = useMemo(() => {
+    let rows = [...draft]
 
-  // toggle a column on/off
+    // filter
+    if (filterBy && filterValue) {
+      rows = rows.filter(r => (r[filterBy]||'').toString() === filterValue)
+    }
+
+    // sort
+    if (sortConfig.key) {
+      rows.sort((a,b) => {
+        let av, bv
+        const key = sortConfig.key
+        if (key === 'total') {
+          av = rowSum(a); bv = rowSum(b)
+        } else if (MONTH_KEYS.includes(key)) {
+          av = parseFloat(a[key])||0; bv = parseFloat(b[key])||0
+        } else if (key === 'updatedAt') {
+          av = new Date(a.updatedAt).getTime()||0
+          bv = new Date(b.updatedAt).getTime()||0
+        } else {
+          av = (a[key]||'').toString().toLowerCase()
+          bv = (b[key]||'').toString().toLowerCase()
+        }
+        if (av < bv) return sortConfig.direction==='asc' ? -1 : 1
+        if (av > bv) return sortConfig.direction==='asc' ? 1 : -1
+        return 0
+      })
+    }
+
+    return rows
+  }, [draft, filterBy, filterValue, sortConfig])
+
+  const bottomTotals = useMemo(() =>
+    MONTH_KEYS.map(m =>
+      processed.reduce((a,r)=> a+(parseFloat(r[m])||0), 0).toFixed(2)
+    ),
+  [processed])
+
+  // for filterValue dropdown: gather unique values
+  const filterOptions = useMemo(() => {
+    if (!filterBy) return []
+    return Array.from(
+      new Set(draft.map(r => (r[filterBy]||'').toString()).filter(v=>v))
+    )
+  }, [draft, filterBy])
+
+  // toggle column visibility
   const toggleCol = key =>
     setCols(c =>
       c.includes(key)
         ? c.filter(x=>x!==key)
         : [...c, key]
     )
+
+  // handle sort header click
+  const handleSort = key => {
+    setSortConfig(sc => {
+      if (sc.key === key) {
+        return { key, direction: sc.direction==='asc' ? 'desc' : 'asc' }
+      } else {
+        return { key, direction: 'asc' }
+      }
+    })
+  }
 
   return (
     <div className="p-6">
@@ -165,7 +221,7 @@ export default function Forecast() {
         <button onClick={handleAdd} className="btn-add ml-auto">+ Add Project</button>
       </div>
 
-      {/* collapse + column‐picker row */}
+      {/* collapse/columns/filter row */}
       <div className="flex flex-wrap items-center mb-4 space-x-4">
         <button
           onClick={()=>setCollapsed(c=>!c)}
@@ -173,24 +229,62 @@ export default function Forecast() {
         >
           {collapsed
             ? <><ChevronDoubleRightIcon className="h-5 w-5"/> <span>Detailed View</span></>
-            : <><ChevronDoubleLeftIcon  className="h-5 w-5"/> <span>Compact view</span></>
+            : <><ChevronDoubleLeftIcon  className="h-5 w-5"/> <span>Compact View</span></>
           }
         </button>
-        {!collapsed
-          ? <>
-            <strong>Show columns:</strong>
-            {STATIC_COLS.map(c=> (
-              <label key={c.key} className="mr-4">
-                <input
-                  type="checkbox"
-                  checked={cols.includes(c.key)}
-                  onChange={()=>toggleCol(c.key)}
-                /> {c.label}
-              </label>
-            ))}
-          </>: <></>
-        }
 
+        {!collapsed && <>
+          <strong>Show columns:</strong>
+          {STATIC_COLS.map(c=> (
+            <label key={c.key} className="mr-4">
+              <input
+                type="checkbox"
+                checked={cols.includes(c.key)}
+                onChange={()=>toggleCol(c.key)}
+              /> {c.label}
+            </label>
+          ))}
+        </>}
+
+        {/* ---------------- */}
+        {/* filter on right  */}
+        {/* ---------------- */}
+        <div className="ml-auto flex items-center space-x-2">
+          <label>Filter By:</label>
+          <select
+            className="border rounded px-2 py-1"
+            value={filterBy}
+            onChange={e => {
+              setFilterBy(e.target.value)
+              setFilterValue('')
+            }}
+          >
+            <option value="">None</option>
+            <option value="accountName">Account Name</option>
+            ...{/* same for all static keys */}
+            {STATIC_COLS.map(c => (
+              <option key={c.key} value={c.key}>{c.label}</option>
+            ))}
+          </select>
+          {filterBy && (
+            <select
+              className="border rounded px-2 py-1"
+              value={filterValue}
+              onChange={e=>setFilterValue(e.target.value)}
+            >
+              <option value="">All Values</option>
+              {filterOptions.map(v => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          )}
+          {(filterBy||filterValue) && (
+            <button
+              onClick={()=>{ setFilterBy(''); setFilterValue('') }}
+              className="text-red-600 font-bold"
+            >×</button>
+          )}
+        </div>
       </div>
 
       {/* data table */}
@@ -198,21 +292,67 @@ export default function Forecast() {
         <table className="forecast-table">
           <thead>
             <tr>
-              <th className="sticky-first">Account Name</th>
+              <th
+                className="sticky-first cursor-pointer"
+                onClick={()=>handleSort('accountName')}
+              >
+                Account Name
+                {sortConfig.key==='accountName' && (sortConfig.direction==='asc' ? ' ↑':' ↓')}
+              </th>
+
               {!collapsed && STATIC_COLS.map(c =>
                 cols.includes(c.key)
-                  ? <th key={c.key}>{c.label}</th>
+                  ? <th
+                      key={c.key}
+                      className="cursor-pointer"
+                      onClick={()=>handleSort(c.key)}
+                    >
+                      {c.label}
+                      {sortConfig.key===c.key && (sortConfig.direction==='asc'?' ↑':' ↓')}
+                    </th>
                   : null
               )}
-              {MONTH_KEYS.map(m => <th key={m}>{m}</th>)}
-              <th className="total-col">Total</th>
-              <th className="comments-col">Comments</th>
-              <th className="timestamp-col">Last Updated</th>
+
+              {MONTH_KEYS.map(m=>(
+                <th
+                  key={m}
+                  className="cursor-pointer month-col"
+                  onClick={()=>handleSort(m)}
+                >
+                  {m}
+                  {sortConfig.key===m && (sortConfig.direction==='asc'?' ↑':' ↓')}
+                </th>
+              ))}
+
+              <th
+                className="cursor-pointer total-col"
+                onClick={()=>handleSort('total')}
+              >
+                Total
+                {sortConfig.key==='total' && (sortConfig.direction==='asc'?' ↑':' ↓')}
+              </th>
+
+              <th
+                className="cursor-pointer comments-col"
+                onClick={()=>handleSort('comments')}
+              >
+                Comments
+                {sortConfig.key==='comments' && (sortConfig.direction==='asc'?' ↑':' ↓')}
+              </th>
+
+              <th
+                className="cursor-pointer timestamp-col"
+                onClick={()=>handleSort('updatedAt')}
+              >
+                Last Updated
+                {sortConfig.key==='updatedAt' && (sortConfig.direction==='asc'?' ↑':' ↓')}
+              </th>
+
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {draft.map((row,i)=>(
+            {processed.map((row,i)=>(
               <tr key={i}>
                 <td className="sticky-first wrap">
                   <input
@@ -292,7 +432,7 @@ export default function Forecast() {
                 <td
                   key={i}
                   className="month-col total-background text-right font-semibold"
-                >${t}</td>
+                >{t}</td>
               ))}
               <td className="total-col"></td>
               <td className="comments-col"></td>
