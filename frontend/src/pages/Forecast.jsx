@@ -49,8 +49,8 @@ export default function Forecast() {
   useEffect(() => {
     if (!isEditing) return
     const msgs = []
-    if (collapsed)            msgs.push('Expanded view')
-    if (cols.length < allKeys.length) msgs.push('Showing all columns')
+    if (collapsed)            msgs.push('Detailed view')
+    if (cols.length < allKeys.length) msgs.push('Showing all columns to switch to edit mode')
     if (filterBy || filterVal) msgs.push('Cleared filters')
     setCollapsed(false)
     setCols(allKeys)
