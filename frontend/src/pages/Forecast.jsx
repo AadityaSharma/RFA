@@ -7,17 +7,21 @@ import {
   upsertEntries,
   exportEntries
 } from '../services/api'
-import { XIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from '@heroicons/react/solid'
+import {
+  XIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon
+} from '@heroicons/react/solid'
 import './Forecast.css'
 
 const STATIC_COLS = [
-  { key: 'accountName', label: 'Account Name' },
+  { key: 'accountName',     label: 'Account Name'     },
   { key: 'deliveryManager', label: 'Delivery Manager' },
-  { key: 'projectName', label: 'Project Name' },
-  { key: 'BU', label: 'BU' },
-  { key: 'VDE', label: 'VDE' },
-  { key: 'GDE', label: 'GDE' },
-  { key: 'account', label: 'Account' }
+  { key: 'projectName',     label: 'Project Name'     },
+  { key: 'BU',              label: 'BU'               },
+  { key: 'VDE',             label: 'VDE'              },
+  { key: 'GDE',             label: 'GDE'              },
+  { key: 'account',         label: 'Account'          }
 ]
 
 const MONTH_KEYS = [
@@ -26,37 +30,37 @@ const MONTH_KEYS = [
 ]
 
 export default function Forecast() {
-  const [years, setYears]               = useState([])
-  const [entries, setEntries]           = useState([])
-  const [draft, setDraft]               = useState([])
-  const [year, setYear]                 = useState(null)
-  const [isEditing, setIsEditing]       = useState(false)
-  const [collapsed, setCollapsed]       = useState(false)
-  const wrapperRef                      = useRef()
+  const [years,      setYears]    = useState([])
+  const [entries,    setEntries]  = useState([])
+  const [draft,      setDraft]    = useState([])
+  const [year,       setYear]     = useState(null)
+  const [isEditing,  setIsEditing]= useState(false)
+  const [cols,       setCols]     = useState(STATIC_COLS.map(c=>c.key))
+  const [collapsed,  setCollapsed]= useState(false)
+  const wrapperRef                = useRef()
 
-  // load years & initial
+  // load years
   useEffect(() => {
     fetchYears('forecast').then(r => {
-      const ys = r.data.years || []
+      const ys = r.data.years||[]
       setYears(ys)
       if (ys[0]) setYear(ys[0])
     })
-    fetchProjects() // no-op, for future UX
+    fetchProjects() // for future use
   }, [])
 
-  // reload whenever year changes
+  // reload on year change
   useEffect(() => {
     if (!year) return
     fetchEntries({ type:'forecast', year }).then(r => {
-      // normalize month keys from server
       const norm = (r.data||[]).map(raw => {
-        const e = { ...raw }
+        const e = {...raw}
         MONTH_KEYS.forEach(m => {
-          if (raw[m] !== undefined) return
-          const up = m.charAt(0).toUpperCase()+m.slice(1)
-          if (raw[up] !== undefined) {
-            e[m] = raw[up]
-            delete e[up]
+          if (raw[m]===undefined) {
+            const Up = m.charAt(0).toUpperCase()+m.slice(1)
+            if (raw[Up]!==undefined) {
+              e[m]=raw[Up]; delete e[Up]
+            }
           }
         })
         return e
@@ -67,10 +71,9 @@ export default function Forecast() {
     })
   }, [year])
 
-  // Export CSV
   const handleExport = () => {
     exportEntries('forecast', year).then(res => {
-      const blob = new Blob([res.data], { type:'text/csv' })
+      const blob = new Blob([res.data],{type:'text/csv'})
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')
       a.href     = url
@@ -80,57 +83,55 @@ export default function Forecast() {
     })
   }
 
-  // Save bulk
   const handleSave = async () => {
     const clean = draft.map(e => {
-      const { _id, createdAt, updatedAt, __isNew, ...rest } = e
+      const { _id,createdAt,updatedAt,__isNew,...rest } = e
       return rest
     })
     await upsertEntries({ type:'forecast', year, entries: clean })
     setIsEditing(false)
-    setYear(year) // re‑trigger reload
+    setYear(year) // reload
   }
 
-  // Cancel
   const handleCancel = () => {
     setDraft(entries.map(e=>({ ...e })))
     setIsEditing(false)
   }
 
-  // Add row
   const handleAdd = () => {
     const blank = { accountName:'',deliveryManager:'',projectName:'',
       BU:'',VDE:'',GDE:'',account:'',comments:'',__isNew:true }
     MONTH_KEYS.forEach(m=> blank[m]=0)
-    setDraft(d => [...d, blank])
+    setDraft(d=>[...d,blank])
     setIsEditing(true)
-    setTimeout(()=> wrapperRef.current.scrollLeft = wrapperRef.current.scrollWidth, 100)
+    setTimeout(()=>wrapperRef.current.scrollLeft=wrapperRef.current.scrollWidth,100)
   }
 
-  // Delete unsaved
-  const handleDel = idx => {
-    setDraft(d => d.filter((_,i)=>i!==idx))
-  }
+  const handleDel = idx => setDraft(d=>d.filter((_,i)=>i!==idx))
 
-  // Single change
-  const onChange = (i, f, v) => {
-    setDraft(d => {
-      const c = [...d]; c[i] = { ...c[i], [f]: v }; return c
+  const onChange = (i,f,v) => {
+    setDraft(d=>{
+      const c = [...d]; c[i]={...c[i],[f]:v}; return c
     })
   }
 
-  // Per-row total
-  const rowSum = row => MONTH_KEYS.reduce((a,m)=>a+(parseFloat(row[m])||0),0)
+  const rowSum = r => MONTH_KEYS.reduce((a,m)=>a+(parseFloat(r[m])||0),0)
 
-  // Bottom totals
-  const bottomTotals = MONTH_KEYS.map(m =>
+  const bottomTotals = MONTH_KEYS.map(m=>
     draft.reduce((a,r)=>a+(parseFloat(r[m])||0),0).toFixed(2)
   )
+
+  // toggle column on/off
+  const toggleCol = key =>
+    setCols(c => c.includes(key)
+      ? c.filter(x=>x!==key)
+      : [...c,key]
+    )
 
   return (
     <div className="p-6">
       {/* controls */}
-      <div className="flex items-center mb-4 space-x-2">
+      <div className="flex flex-wrap items-center mb-4 space-x-2">
         <select
           className="border rounded px-2 py-1"
           value={year||''}
@@ -147,63 +148,68 @@ export default function Forecast() {
           : <button onClick={()=>setIsEditing(true)} className="btn-edit">Edit</button>
         }
         <button onClick={handleAdd} className="btn-add ml-auto">+ Add Project</button>
+
+        {/* collapse info */}
         <button
           onClick={()=>setCollapsed(c=>!c)}
           className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
         >
           {collapsed
-            ? <><ChevronDoubleRightIcon className="h-5 w-5"/> <span>Expand Info</span></>
-            : <><ChevronDoubleLeftIcon  className="h-5 w-5"/> <span>Collapse Info</span></>
+            ? <><ChevronDoubleRightIcon className="h-5 w-5"/><span>Expand Info</span></>
+            : <><ChevronDoubleLeftIcon  className="h-5 w-5"/><span>Collapse Info</span></>
           }
         </button>
       </div>
 
+      {/* column toggles */}
+      <div className="mb-3">
+        <strong>Show columns:</strong>{' '}
+        {STATIC_COLS.map(c=>(
+          <label key={c.key} className="mr-4">
+            <input
+              type="checkbox"
+              checked={cols.includes(c.key)}
+              onChange={()=>toggleCol(c.key)}
+            /> {c.label}
+          </label>
+        ))}
+      </div>
+
       {/* table */}
-      <div ref={wrapperRef} className="table-wrapper" style={{ maxHeight:'65vh' }}>
+      <div ref={wrapperRef} className="table-wrapper" style={{ maxHeight:'60vh' }}>
         <table className="forecast-table">
           <thead>
             <tr>
-              {/* always‑visible */}
-              <th className="sticky-col">Account Name</th>
-              {/* collapsed group */}
-              {!collapsed && STATIC_COLS.slice(1).map(col=>(
-                <th key={col.key}>{col.label}</th>
-              ))}
-              {/* months */}
-              {MONTH_KEYS.map(m=>(
-                <th key={m} className="month-col">{m}</th>
-              ))}
-              <th className="total-col">Total</th>
-              <th className="comments-col">Comments</th>
-              <th className="timestamp-col sticky-col">Last Updated</th>
-              <th></th>
+              <th className="sticky-header">Account Name</th>
+              {!collapsed && STATIC_COLS.slice(1).map(c=>
+                cols.includes(c.key)
+                  ? <th key={c.key} className="sticky-header">{c.label}</th>
+                  : null
+              )}
+              {MONTH_KEYS.map(m=><th key={m}>{m}</th>)}
+              <th className="total-col sticky-header">Total</th>
+              <th className="comments-col sticky-header">Comments</th>
+              <th className="timestamp-col sticky-header">Last Updated</th>
+              <th className="sticky-header"></th>
             </tr>
           </thead>
           <tbody>
             {draft.map((row,i)=>(
               <tr key={i}>
-                {/* always */}
-                <td className="sticky-col">
-                  <input
-                    disabled={!isEditing}
-                    value={row.accountName||''}
-                    onChange={e=>onChange(i,'accountName',e.target.value)}
-                    className="cell-input wrap"
-                  />
-                </td>
-                {/* info group */}
-                {!collapsed && STATIC_COLS.slice(1).map(col=>(
-                  <td key={col.key}>
-                    <input
-                      disabled={!isEditing}
-                      value={row[col.key]||''}
-                      onChange={e=>onChange(i,col.key,e.target.value)}
-                      className="cell-input wrap"
-                    />
-                  </td>
-                ))}
-                {/* months */}
-                {MONTH_KEYS.map(m=>(
+                <td className="sticky-first wrap">{row.accountName}</td>
+                {!collapsed && STATIC_COLS.slice(1).map(c=>
+                  cols.includes(c.key)
+                    ? <td key={c.key} className="wrap">
+                        <input
+                          disabled={!isEditing}
+                          value={row[c.key]||''}
+                          onChange={e=>onChange(i,c.key,e.target.value)}
+                          className="cell-input wrap"
+                        />
+                      </td>
+                    : null
+                )}
+                {MONTH_KEYS.map(m=>
                   <td key={m} className="month-col">
                     <input
                       type="number" step="0.01"
@@ -213,13 +219,9 @@ export default function Forecast() {
                       className="cell-input wrap text-right"
                     />
                   </td>
-                ))}
-                {/* total */}
-                <td className="total-col text-right font-semibold">
-                  ${rowSum(row).toFixed(2)}
-                </td>
-                {/* comments */}
-                <td className="comments-col">
+                )}
+                <td className="total-col text-right">${rowSum(row).toFixed(2)}</td>
+                <td className="comments-col wrap">
                   <input
                     disabled={!isEditing}
                     value={row.comments||''}
@@ -227,14 +229,12 @@ export default function Forecast() {
                     className="cell-input wrap"
                   />
                 </td>
-                {/* timestamp */}
                 <td className="timestamp-col">
                   {row.updatedAt
                     ? new Date(row.updatedAt).toLocaleDateString(undefined,{
                         day:'2-digit',month:'short',year:'numeric'})
                     : '--'}
                 </td>
-                {/* delete */}
                 <td>
                   {row.__isNew && isEditing &&
                     <XIcon
@@ -245,13 +245,20 @@ export default function Forecast() {
               </tr>
             ))}
 
-            {/* bottom‑totals row */}
+            {/* bottom‑totals */}
             <tr className="bottom-row">
-              <td className="sticky-col font-semibold">Totals</td>
-              {!collapsed && <td colSpan={STATIC_COLS.length - 1}></td>}
-              {bottomTotals.map((t,i)=>(
-                <td key={i} className="month-col text-right font-semibold">{t}</td>
+              <td className="sticky-first font-semibold">Totals</td>
+              {!collapsed && STATIC_COLS.slice(1).map((c,j)=> (
+                cols.includes(c.key)
+                  ? <td key={j}></td>
+                  : null
               ))}
+              {bottomTotals.map((t,i)=>
+                <td
+                  key={i}
+                  className="month-col total-background text-right font-semibold"
+                >{t}</td>
+              )}
               <td className="total-col"></td>
               <td className="comments-col"></td>
               <td className="timestamp-col"></td>
