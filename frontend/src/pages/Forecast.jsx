@@ -473,7 +473,7 @@ export default function Forecast() {
                     key={i}
                     className="month-col total-background text-right font-semibold"
                   >
-                    {t}
+                    ${t}
                   </td>
                 ))}
                 <td className="total-col"></td>
