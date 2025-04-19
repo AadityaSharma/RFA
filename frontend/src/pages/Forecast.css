@@ -6,7 +6,7 @@
   --ntt-font:       'Inter', sans-serif;
   --ntt-radius:     6px;
   --ntt-shadow:     0 2px 8px rgba(0,0,0,0.08);
-  --amber:          #fff4e5;
+  --amber:          #fff8e5;
   --redish:         #ffe5e5;
 }
 
@@ -43,35 +43,33 @@
 }
 
 .forecast-table thead th {
-  position: sticky; top: 0; z-index: 30;
-  background: var(--ntt-header-bg);
+  position: sticky; top:0; z-index:30;
+  background:var(--ntt-header-bg);
   padding:10px 8px;
   border-bottom:1px solid var(--ntt-border);
-  font-weight:600;
-  font-size:0.875rem;
-  text-align:left;
-  white-space:nowrap;
+  font-weight:600; font-size:0.875rem;
+  text-align:left; white-space:nowrap;
 }
 .forecast-table thead th.sticky-first {
   z-index:35;
 }
 
 .sticky-first {
-  position: sticky; left: 0;
-  background: var(--ntt-header-bg);
-  z-index: 25;
-  box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+  position:sticky; left:0;
+  background:var(--ntt-header-bg);
+  z-index:25;
+  box-shadow:2px 0 4px rgba(0,0,0,0.05);
 }
 
 .forecast-table tbody tr:nth-child(even) {
-  background: var(--ntt-row-alt-bg);
+  background:var(--ntt-row-alt-bg);
 }
 .forecast-table tbody tr:hover {
-  background: var(--ntt-hover-bg);
+  background:var(--ntt-hover-bg);
 }
 
-.age-warning { background: var(--amber) !important }
-.age-danger  { background: var(--redish) !important }
+.age-warning { background: var(--amber)  !important; }
+.age-danger  { background: var(--redish) !important; }
 
 .forecast-table td {
   vertical-align:middle;
@@ -85,10 +83,10 @@
 
 .cell-input.wrap,
 .forecast-table td.wrap {
-  white-space: normal;
-  word-break: break-word;
-  line-height: 1.2;
-  max-width: none;
+  white-space:normal;
+  word-break:break-word;
+  line-height:1.2;
+  max-width:none;
 }
 
 .cell-input {
@@ -106,7 +104,7 @@
   background:#ffedbd;
   text-align:right;
   min-width:65px;
-  max-width:65px !important;
+  max-width:65px!important;
 }
 .total-col {
   background:#ebf8ff;
@@ -144,9 +142,9 @@
 .bottom-row .sticky-first,
 .bottom-row .comments-col,
 .bottom-row .timestamp-col {
-  background: var(--ntt-header-bg);
+  background:var(--ntt-header-bg);
 }
 
 .new-row {
-  background:#fff8e1 !important;
+  background:#fff8e1!important;
 }
