@@ -24,11 +24,11 @@
   cursor:pointer;
   font-size:0.775rem;
 }
-.btn-export { background:#059669; color:#fff; }
-.btn-save   { background:#2563eb; color:#fff; }
-.btn-cancel { background:#dc2626; color:#fff; }
-.btn-edit   { background:#2563eb; color:#fff; }
-.btn-add    { background:#4f46e5; color:#fff; }
+.btn-export { background:#059669; color:#fff }
+.btn-save   { background:#2563eb; color:#fff }
+.btn-cancel { background:#dc2626; color:#fff }
+.btn-edit   { background:#2563eb; color:#fff }
+.btn-add    { background:#4f46e5; color:#fff }
 
 /*--------------------------------------*
  |   TABLE WRAPPER                      |
@@ -69,9 +69,8 @@
   text-align:left;
   white-space:nowrap;
 }
-
 .forecast-table thead th.sticky-first {
-  z-index: 35;
+  z-index:35;
 }
 
 /*--------------------------------------*
@@ -98,8 +97,8 @@
 /*--------------------------------------*
  |   AGE HIGHLIGHTS                    |
  *--------------------------------------*/
-.age-warning { background: var(--amber) !important; }
-.age-danger  { background: var(--redish) !important; }
+.age-warning { background: var(--amber) !important }
+.age-danger  { background: var(--redish) !important }
 
 /*--------------------------------------*
  |   CELL STYLES                       |
@@ -114,7 +113,7 @@
   overflow:visible;
 }
 
-/* allow wrap */
+/* allow wrap where needed */
 .cell-input.wrap,
 .forecast-table td.wrap {
   white-space: normal;
@@ -138,27 +137,20 @@
 /*--------------------------------------*
  |   SPECIAL COLUMNS                   |
  *--------------------------------------*/
-/* month */
 .month-col {
   background:#ffedbd;
   text-align:right;
   min-width:65px;
   max-width:65px !important;
 }
-
-/* total */
 .total-col {
   background:#ebf8ff;
   text-align:right;
   min-width:80px;
 }
-
-/* comments */
 .comments-col {
   min-width:180px;
 }
-
-/* timestamp */
 .timestamp-col {
   min-width:100px;
   font-size:0.75rem;
@@ -166,33 +158,32 @@
   text-align:center;
 }
 
-/* variance arrows */
-.var-up   { color:#059669; font-size:0.65rem; margin-left:4px; }
-.var-down { color:#dc2626; font-size:0.65rem; margin-left:4px; }
+/* cursor on sortable headers */
+.forecast-table th.cursor-pointer {
+  cursor: pointer;
+}
 
 /*--------------------------------------*
- |   BOTTOM TOTALS                     |
+ |   BOTTOM TOTAL ROW                  |
  *--------------------------------------*/
 .bottom-row {
   font-weight:600;
 }
 .bottom-row td {
   border-top:2px solid var(--ntt-border);
-  background: #f0f4f8;
 }
-/* sticky only these in footer */
+/* only these stay sticky in footer */
 .bottom-row .month-col,
 .bottom-row .total-col,
 .bottom-row .comments-col,
 .bottom-row .timestamp-col,
-.bottom-row .sticky-first,
-.bottom-row td {
+.bottom-row .sticky-first {
   position: sticky;
   bottom: 0;
   z-index: 25;
 }
 /* footer backgrounds */
-.bottom-row .month-col { background:#ebf8ff; }
+.bottom-row .month-col { background:#ebf8ff }
 .bottom-row .sticky-first,
 .bottom-row .comments-col,
 .bottom-row .timestamp-col {
