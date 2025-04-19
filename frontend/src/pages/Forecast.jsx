@@ -15,7 +15,6 @@ import {
 import './Forecast.css'
 
 const STATIC_COLS = [
-  { key: 'accountName',     label: 'Account Name'     },
   { key: 'deliveryManager', label: 'Delivery Manager' },
   { key: 'projectName',     label: 'Project Name'     },
   { key: 'BU',              label: 'BU'               },
