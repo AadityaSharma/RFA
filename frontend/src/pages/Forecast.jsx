@@ -39,6 +39,16 @@ export default function Forecast() {
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' })
   const wrapperRef                  = useRef()
 
+  const allKeys = STATIC_COLS.map(c=>c.key)
+
+  // When entering edit mode: expand all & select all columns
+  useEffect(() => {
+    if (isEditing) {
+      setCollapsed(false)
+      setCols(allKeys)
+    }
+  }, [isEditing])
+
   // Load years
   useEffect(() => {
     fetchYears('forecast').then(r => {
@@ -103,7 +113,11 @@ export default function Forecast() {
 
   // Add row
   const handleAdd = () => {
-    const blank = { accountName:'', deliveryManager:'', projectName:'', BU:'', VDE:'', GDE:'', account:'', comments:'', __isNew:true }
+    const blank = {
+      accountName:'', deliveryManager:'', projectName:'',
+      BU:'', VDE:'', GDE:'', account:'',
+      comments:'', __isNew:true
+    }
     MONTH_KEYS.forEach(m=> blank[m]=0)
     setDraft(d=>[...d,blank])
     setIsEditing(true)
@@ -168,7 +182,8 @@ export default function Forecast() {
   }, [draft, filterBy])
 
   // Toggle column
-  const toggleCol = key => setCols(c => c.includes(key) ? c.filter(x=>x!==key) : [...c,key])
+  const toggleCol = key =>
+    setCols(c => c.includes(key) ? c.filter(x=>x!==key) : [...c,key])
 
   // Sort handler
   const handleSort = key => {
@@ -182,9 +197,13 @@ export default function Forecast() {
     <div className="p-6">
       {/* Top controls */}
       <div className="flex flex-wrap items-center mb-4 space-x-2">
-        <select className="border rounded px-2 py-1"
+        <select
+          className="border rounded px-2 py-1"
           value={year||''}
-          onChange={e=>setYear(e.target.value)}>
+          onChange={e=>setYear(e.target.value)}
+          disabled={isEditing}
+          title={isEditing ? "Can't modify in edit mode" : ""}
+        >
           {years.map(y=> <option key={y} value={y}>FY {y}</option>)}
         </select>
         <button onClick={handleExport} className="btn-export">Export CSV</button>
@@ -202,8 +221,10 @@ export default function Forecast() {
       <div className="flex flex-wrap items-center mb-4">
         {/* left group */}
         <div className="flex items-center space-x-4">
-          <button onClick={()=>setCollapsed(c=>!c)}
-                  className="flex items-center space-x-1 text-gray-600 hover:text-gray-800">
+          <button
+            onClick={()=>setCollapsed(c=>!c)}
+            className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
+          >
             {collapsed
               ? <><ChevronDoubleRightIcon className="h-5 w-5"/><span>Detailed View</span></>
               : <><ChevronDoubleLeftIcon  className="h-5 w-5"/><span>Compact View</span></>
@@ -213,38 +234,55 @@ export default function Forecast() {
             <strong>Show columns:</strong>
             {STATIC_COLS.map(c=> (
               <label key={c.key} className="mr-4">
-                <input type="checkbox"
+                <input
+                  type="checkbox"
                   checked={cols.includes(c.key)}
-                  onChange={()=>toggleCol(c.key)} /> {c.label}
+                  onChange={()=>toggleCol(c.key)}
+                /> {c.label}
               </label>
             ))}
           </>}
         </div>
+
         {/* right group */}
         <div className="flex items-center space-x-2 ml-auto">
           <label>Filter By:</label>
-          <select className="border rounded px-2 py-1"
+          <select
+            className="border rounded px-2 py-1"
             value={filterBy}
-            onChange={e=>{ setFilterBy(e.target.value); setFilterVal('') }}>
+            onChange={e=>{ setFilterBy(e.target.value); setFilterVal('') }}
+            disabled={isEditing}
+            title={isEditing ? "Can't modify in edit mode" : ""}
+          >
             <option value="">None</option>
             <option value="accountName">Account Name</option>
             {STATIC_COLS.map(c=>(
               <option key={c.key} value={c.key}>{c.label}</option>
             ))}
           </select>
+
           {filterBy && (
-            <select className="border rounded px-2 py-1"
+            <select
+              className="border rounded px-2 py-1"
               value={filterVal}
-              onChange={e=>setFilterVal(e.target.value)}>
+              onChange={e=>setFilterVal(e.target.value)}
+              disabled={isEditing}
+              title={isEditing ? "Can't modify in edit mode" : ""}
+            >
               <option value="">All Values</option>
               {filterOptions.map(v=>(
                 <option key={v} value={v}>{v}</option>
               ))}
             </select>
           )}
+
           {(filterBy||filterVal) && (
-            <button onClick={()=>{ setFilterBy(''); setFilterVal('') }}
-                    className="text-red-600">
+            <button
+              onClick={()=>{ setFilterBy(''); setFilterVal('') }}
+              disabled={isEditing}
+              title={isEditing ? "Can't modify in edit mode" : ""}
+              className="text-red-600"
+            >
               <TrashIcon className="h-4 w-4"/>
             </button>
           )}
@@ -256,39 +294,57 @@ export default function Forecast() {
         <table className="forecast-table">
           <thead>
             <tr>
-              <th className="sticky-first cursor-pointer"
-                  onClick={()=>handleSort('accountName')}>
+              <th
+                className="sticky-first cursor-pointer"
+                onClick={()=>handleSort('accountName')}
+              >
                 Account Name
                 {sortConfig.key==='accountName' && (sortConfig.direction==='asc'?' ↑':' ↓')}
               </th>
+
               {!collapsed && STATIC_COLS.map(c=>cols.includes(c.key)&&(
-                <th key={c.key}
-                    className="cursor-pointer"
-                    onClick={()=>handleSort(c.key)}>
+                <th
+                  key={c.key}
+                  className="cursor-pointer"
+                  onClick={()=>handleSort(c.key)}
+                >
                   {c.label}
                   {sortConfig.key===c.key && (sortConfig.direction==='asc'?' ↑':' ↓')}
                 </th>
               ))}
+
               {MONTH_KEYS.map(m=>(
-                <th key={m}
-                    className="cursor-pointer month-col"
-                    onClick={()=>handleSort(m)}>
+                <th
+                  key={m}
+                  className="cursor-pointer month-col"
+                  onClick={()=>handleSort(m)}
+                >
                   {m}
                   {sortConfig.key===m && (sortConfig.direction==='asc'?' ↑':' ↓')}
                 </th>
               ))}
-              <th className="cursor-pointer total-col"
-                  onClick={()=>handleSort('total')}>
+
+              <th
+                className="cursor-pointer total-col"
+                onClick={()=>handleSort('total')}
+              >
                 Total{sortConfig.key==='total'&&(sortConfig.direction==='asc'?' ↑':' ↓')}
               </th>
-              <th className="cursor-pointer comments-col"
-                  onClick={()=>handleSort('comments')}>
+
+              <th
+                className="cursor-pointer comments-col"
+                onClick={()=>handleSort('comments')}
+              >
                 Comments{sortConfig.key==='comments'&&(sortConfig.direction==='asc'?' ↑':' ↓')}
               </th>
-              <th className="cursor-pointer timestamp-col"
-                  onClick={()=>handleSort('updatedAt')}>
+
+              <th
+                className="cursor-pointer timestamp-col"
+                onClick={()=>handleSort('updatedAt')}
+              >
                 Last Updated{sortConfig.key==='updatedAt'&&(sortConfig.direction==='asc'?' ↑':' ↓')}
               </th>
+
               <th></th>
             </tr>
           </thead>
@@ -296,41 +352,51 @@ export default function Forecast() {
             {processed.map((row,i)=>(
               <tr key={i}>
                 <td className="sticky-first wrap">
-                  <input disabled={!isEditing}
+                  <input
+                    disabled={!isEditing}
                     value={row.accountName||''}
                     onChange={e=>onChange(i,'accountName',e.target.value)}
-                    className="cell-input wrap"/>
+                    className="cell-input wrap"
+                  />
                 </td>
                 {!collapsed && STATIC_COLS.map(c=>cols.includes(c.key)&&(
                   <td key={c.key} className="wrap">
-                    <input disabled={!isEditing}
+                    <input
+                      disabled={!isEditing}
                       value={row[c.key]||''}
                       onChange={e=>onChange(i,c.key,e.target.value)}
-                      className="cell-input wrap"/>
+                      className="cell-input wrap"
+                    />
                   </td>
                 ))}
                 {MONTH_KEYS.map(m=>(
                   <td key={m} className="month-col wrap">
-                    <input type="number" step="0.01" disabled={!isEditing}
-                      value={row[m]} onChange={e=>onChange(i,m,e.target.value)}
-                      className="cell-input wrap text-right"/>
+                    <input
+                      type="number" step="0.01" disabled={!isEditing}
+                      value={row[m]}
+                      onChange={e=>onChange(i,m,e.target.value)}
+                      className="cell-input wrap text-right"
+                    />
                   </td>
                 ))}
                 <td className="total-col text-right">
                   ${rowSum(row).toFixed(2)}
                 </td>
                 <td className="comments-col wrap">
-                  <input disabled={!isEditing}
+                  <input
+                    disabled={!isEditing}
                     value={row.comments||''}
                     onChange={e=>onChange(i,'comments',e.target.value)}
-                    className="cell-input wrap"/>
+                    className="cell-input wrap"
+                  />
                 </td>
                 <td className="timestamp-col">
                   {row.updatedAt
                     ? new Date(row.updatedAt).toLocaleDateString(undefined,{
                         day:'2-digit',month:'short',year:'numeric'
                       })
-                    : '--'}
+                    : '--'
+                  }
                 </td>
                 <td>
                   {row.__isNew && isEditing && (
@@ -350,8 +416,10 @@ export default function Forecast() {
                 <td key={c.key}></td>
               ))}
               {bottomTotals.map((t,i)=>(
-                <td key={i}
-                    className="month-col total-background text-right font-semibold">
+                <td
+                  key={i}
+                  className="month-col total-background text-right font-semibold"
+                >
                   {t}
                 </td>
               ))}
