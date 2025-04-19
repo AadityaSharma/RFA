@@ -109,7 +109,7 @@
 .forecast-table td {
   vertical-align:middle;
   border-bottom:1px solid var(--ntt-border);
-  font-size:0.875rem;
+  font-size:12px;
   padding:8px; /* a bit more for wrap */
   white-space:nowrap;
   max-width:140px;
