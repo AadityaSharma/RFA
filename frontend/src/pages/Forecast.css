@@ -102,13 +102,13 @@
 
 .month-col {
   background:#ffedbd;
-  text-align:right;
+  text-align:center !important;
   min-width:65px;
   max-width:65px!important;
 }
 .total-col {
   background:#ebf8ff;
-  text-align:right;
+  text-align:center !important;
   min-width:80px;
 }
 .comments-col {
