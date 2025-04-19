@@ -70,6 +70,10 @@
   white-space:nowrap;
 }
 
+.forecast-table thead th.sticky-first {
+  z-index: 35;
+}
+
 /*--------------------------------------*
  |   FIRST COL STICKY                  |
  *--------------------------------------*/
@@ -174,13 +178,15 @@
 }
 .bottom-row td {
   border-top:2px solid var(--ntt-border);
+  background: #f0f4f8;
 }
 /* sticky only these in footer */
 .bottom-row .month-col,
 .bottom-row .total-col,
 .bottom-row .comments-col,
 .bottom-row .timestamp-col,
-.bottom-row .sticky-first {
+.bottom-row .sticky-first,
+.bottom-row td {
   position: sticky;
   bottom: 0;
   z-index: 25;
