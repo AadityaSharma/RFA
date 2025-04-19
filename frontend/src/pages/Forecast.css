@@ -1,6 +1,3 @@
-/*--------------------------------------*
- |   ROOT VARIABLES                    |
- *--------------------------------------*/
 :root {
   --ntt-border:     #e1e2e6;
   --ntt-header-bg:  #f0f4f8;
@@ -13,9 +10,6 @@
   --redish:         #ffe5e5;
 }
 
-/*--------------------------------------*
- |   BUTTON STYLES                      |
- *--------------------------------------*/
 .btn-export, .btn-save, .btn-cancel, .btn-edit, .btn-add {
   padding:6px 12px;
   margin-right:6px;
@@ -30,9 +24,6 @@
 .btn-edit   { background:#2563eb; color:#fff }
 .btn-add    { background:#4f46e5; color:#fff }
 
-/*--------------------------------------*
- |   TABLE WRAPPER                      |
- *--------------------------------------*/
 .table-wrapper {
   border:1px solid var(--ntt-border);
   border-radius:var(--ntt-radius);
@@ -43,9 +34,6 @@
   max-height:60vh;
 }
 
-/*--------------------------------------*
- |   BASE TABLE                        |
- *--------------------------------------*/
 .forecast-table {
   border-collapse: separate;
   border-spacing:0;
@@ -54,13 +42,8 @@
   width:max-content;
 }
 
-/*--------------------------------------*
- |   HEADER ROW                        |
- *--------------------------------------*/
 .forecast-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 30;
+  position: sticky; top: 0; z-index: 30;
   background: var(--ntt-header-bg);
   padding:10px 8px;
   border-bottom:1px solid var(--ntt-border);
@@ -73,20 +56,13 @@
   z-index:35;
 }
 
-/*--------------------------------------*
- |   FIRST COL STICKY                  |
- *--------------------------------------*/
 .sticky-first {
-  position: sticky;
-  left: 0;
+  position: sticky; left: 0;
   background: var(--ntt-header-bg);
   z-index: 25;
   box-shadow: 2px 0 4px rgba(0,0,0,0.05);
 }
 
-/*--------------------------------------*
- |   BODY ROWS                         |
- *--------------------------------------*/
 .forecast-table tbody tr:nth-child(even) {
   background: var(--ntt-row-alt-bg);
 }
@@ -94,15 +70,9 @@
   background: var(--ntt-hover-bg);
 }
 
-/*--------------------------------------*
- |   AGE HIGHLIGHTS                    |
- *--------------------------------------*/
 .age-warning { background: var(--amber) !important }
 .age-danger  { background: var(--redish) !important }
 
-/*--------------------------------------*
- |   CELL STYLES                       |
- *--------------------------------------*/
 .forecast-table td {
   vertical-align:middle;
   border-bottom:1px solid var(--ntt-border);
@@ -113,7 +83,6 @@
   overflow:visible;
 }
 
-/* allow wrap where needed */
 .cell-input.wrap,
 .forecast-table td.wrap {
   white-space: normal;
@@ -122,7 +91,6 @@
   max-width: none;
 }
 
-/* inputs */
 .cell-input {
   width:100%;
   border:none;
@@ -134,9 +102,6 @@
   color:#444;
 }
 
-/*--------------------------------------*
- |   SPECIAL COLUMNS                   |
- *--------------------------------------*/
 .month-col {
   background:#ffedbd;
   text-align:right;
@@ -158,31 +123,23 @@
   text-align:center;
 }
 
-/* cursor on sortable headers */
 .forecast-table th.cursor-pointer {
-  cursor: pointer;
+  cursor:pointer;
 }
 
-/*--------------------------------------*
- |   BOTTOM TOTAL ROW                  |
- *--------------------------------------*/
 .bottom-row {
   font-weight:600;
 }
 .bottom-row td {
   border-top:2px solid var(--ntt-border);
 }
-/* only these stay sticky in footer */
 .bottom-row .month-col,
 .bottom-row .total-col,
 .bottom-row .comments-col,
 .bottom-row .timestamp-col,
 .bottom-row .sticky-first {
-  position: sticky;
-  bottom: 0;
-  z-index: 25;
+  position:sticky; bottom:0; z-index:25;
 }
-/* footer backgrounds */
 .bottom-row .month-col { background:#ebf8ff }
 .bottom-row .sticky-first,
 .bottom-row .comments-col,
@@ -190,9 +147,6 @@
   background: var(--ntt-header-bg);
 }
 
-/*--------------------------------------*
- |   NEW‐ROW HIGHLIGHT                 |
- *--------------------------------------*/
 .new-row {
   background:#fff8e1 !important;
 }
